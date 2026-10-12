@@ -10,7 +10,7 @@ const state = {
 };
 
 const systemDiagramImage = new Image();
-systemDiagramImage.src = './assets/mppt-system-irradiance-v2.png';
+systemDiagramImage.src = './assets/mppt-system-irradiance-v2.jpg';
 systemDiagramImage.addEventListener('load', () => {
   if (state.data) render();
 });
@@ -582,7 +582,7 @@ const parameterGuideReferences = {
     { citation: 'F. Liu, S. Duan, F. Liu, B. Liu, and Y. Kang, “A variable step size INC MPPT method for PV systems,” IEEE Trans. Ind. Electron., vol. 55, no. 7, pp. 2622–2628, Jul. 2008, doi: 10.1109/TIE.2008.920550.', url: 'https://doi.org/10.1109/TIE.2008.920550' },
   ],
   jeinc: [
-    { citation: '王艺博, 苏高民, and 邱榕鑫, “基于跃变探索式电导增量法的光伏阵列全局最大功率点跟踪控制研究,” 电气工程学报, vol. 19, no. 1, pp. 351–357, Mar. 2024, doi: 10.11985/2024.01.038.', url: './assets/references/jeinc-2024.pdf' },
+    { citation: '王艺博, 苏高民, and 邱榕鑫, “基于跃变探索式电导增量法的光伏阵列全局最大功率点跟踪控制研究,” 电气工程学报, vol. 19, no. 1, pp. 351–357, Mar. 2024, doi: 10.11985/2024.01.038.', url: 'https://doi.org/10.11985/2024.01.038' },
   ],
   mpc: [
     { citation: 'S. Kouro, P. Cortés, R. Vargas, U. Ammann, and J. Rodríguez, “Model predictive control—A simple and powerful method to control power converters,” IEEE Trans. Ind. Electron., vol. 56, no. 6, pp. 1826–1838, Jun. 2009, doi: 10.1109/TIE.2008.2008349.', url: 'https://doi.org/10.1109/TIE.2008.2008349' },
