@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Visualize the search and tracking behavior of photovoltaic MPPT algorithms on measured I–U and P–U curves." />
+    <title>PV·LAB · Photovoltaic MPPT Algorithm Visualizer</title>
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="stylesheet" href="./styles.css?v=20261012-parameter-references" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#top" aria-label="回到顶部">
+        <span class="brand-mark" aria-hidden="true">
+          <span></span><span></span><span></span><span></span>
+        </span>
+        <span><strong>PV·LAB</strong><small>MPPT VISUAL STUDIO</small></span>
+      </a>
+      <div class="topbar-tagline">看见算法如何找到最大功率点</div>
+      <button class="language-toggle" id="languageToggle" type="button" aria-label="切换到中文"><strong>中</strong><i></i><span>EN</span></button>
+    </header>
+
+    <main id="top" class="console-main">
+      <section class="method" id="method">
+        <div class="method-copy">
+          <h2>选择一种 MPPT 方法</h2>
+          <div class="algorithm-picker">
+            <select id="algorithmCategory" aria-label="算法类别">
+              <option value="traditional" selected>传统算法</option>
+              <option value="fuzzy_logic">模糊逻辑</option>
+              <option value="metaheuristic">元启发式优化算法</option>
+              <option value="machine_learning">机器学习</option>
+            </select>
+            <select id="algorithmSelect" aria-label="具体 MPPT 算法">
+              <option value="po" selected>扰动观察法 (P&amp;O)</option>
+              <option value="cvt">固定电压法 (CVT)</option>
+              <option value="focv">开路电压法 (FOCV)</option>
+              <option value="scan">电压扫描法 (VS)</option>
+              <option value="esc">极值搜索控制 (ESC)</option>
+              <option value="inc">电导增量法 (INC)</option>
+              <option value="jeinc">跃变探索式电导增量法 (JEINC)</option>
+            </select>
+          </div>
+          <p id="algorithmDescription">扰动观察法在当前工作电压上施加固定小扰动，根据功率变化判断下一步的搜索方向。</p>
+        </div>
+        <div class="equation-card" id="equationCard">
+          <span id="formulaLabelOne">功率与电压变化</span>
+          <p id="formulaOne">ΔP(k) = P(k) − P(k−1), &nbsp; ΔU(k) = U(k) − U(k−1)</p>
+          <span id="formulaLabelTwo">参考电压更新</span>
+          <p id="formulaTwo">U<sub>ref</sub>(k+1) = U<sub>ref</sub>(k) + ΔU<sub>step</sub> · sgn[ΔP(k)ΔU(k)]</p>
+        </div>
+      </section>
+
+      <section class="workspace" id="experiment">
+        <div class="lab-layout">
+          <aside class="control-panel" id="controlPanel" aria-label="算法参数设置">
+            <div class="panel-head"><h3>参数配置</h3></div>
+
+            <fieldset>
+              <legend>运行工况</legend>
+              <div id="conditionOptions" class="condition-options"></div>
+            </fieldset>
+
+            <section class="parameter-section" aria-labelledby="boostParameterTitle">
+              <h4 id="boostParameterTitle">Boost 大信号模型参数</h4>
+              <div class="parameter-list boost-parameters">
+                <label class="parameter">
+                  <span><b>电感 L</b><output for="inductance" id="inductanceValue">1.00 mH</output></span>
+                  <input id="inductance" type="range" min="0.1" max="10" step="0.1" value="1" />
+                </label>
+                <label class="parameter">
+                  <span><b>输入电容 C<sub>in</sub></b><output for="capacitance" id="capacitanceValue">470 μF</output></span>
+                  <input id="capacitance" type="range" min="50" max="2000" step="10" value="470" />
+                </label>
+                <label class="parameter">
+                  <span><b>输出电容 C<sub>out</sub></b><output for="outputCapacitance" id="outputCapacitanceValue">1000 μF</output></span>
+                  <input id="outputCapacitance" type="range" min="100" max="5000" step="50" value="1000" />
+                </label>
+                <label class="parameter">
+                  <span><b>负载电阻 R</b><output for="loadResistance" id="loadResistanceValue">45.00 Ω</output></span>
+                  <input id="loadResistance" type="range" min="10" max="200" step="1" value="45" />
+                </label>
+              </div>
+            </section>
+
+            <section class="parameter-section common-parameter-section" aria-labelledby="commonParameterTitle">
+              <h4 id="commonParameterTitle">通用参数</h4>
+              <div class="parameter-list common-parameters">
+              <label class="parameter">
+                <span><b>算法更新时间</b><output for="updateTime" id="updateTimeValue">5.00 ms</output></span>
+                <input id="updateTime" type="range" min="0.1" max="20" step="0.1" value="5" />
+              </label>
+              <label class="parameter iteration-parameter" id="psoIterationParameter">
+                <span><b>最大迭代数</b><output for="iterations" id="iterationsValue">150</output></span>
+                <input id="iterations" type="range" min="1" max="300" step="1" value="150" />
+              </label>
+              <label class="parameter iteration-parameter" id="poIterationParameter" hidden>
+                <span><b>最大迭代数</b><output for="poIterations" id="poIterationsValue">150</output></span>
+                <input id="poIterations" type="range" min="1" max="300" step="1" value="150" />
+              </label>
+              <label class="parameter iteration-parameter" id="hcIterationParameter" hidden>
+                <span><b>最大迭代数</b><output for="hcIterations" id="hcIterationsValue">150</output></span>
+                <input id="hcIterations" type="range" min="1" max="300" step="1" value="150" />
+              </label>
+              <label class="parameter iteration-parameter" id="vpoIterationParameter" hidden>
+                <span><b>最大迭代数</b><output for="vpoIterations" id="vpoIterationsValue">150</output></span>
+                <input id="vpoIterations" type="range" min="1" max="300" step="1" value="150" />
+              </label>
+              <label class="parameter iteration-parameter" id="jeincIterationParameter" hidden>
+                <span><b>最大迭代数</b><output for="jeincIterations" id="jeincIterationsValue">150</output></span>
+                <input id="jeincIterations" type="range" min="1" max="300" step="1" value="150" />
+              </label>
+              <label class="parameter iteration-parameter" id="cvtIterationParameter" hidden>
+                <span><b>最大迭代数</b><output for="cvtIterations" id="cvtIterationsValue">150</output></span>
+                <input id="cvtIterations" type="range" min="1" max="300" step="1" value="150" />
+              </label>
+              <label class="parameter iteration-parameter" id="focvIterationParameter" hidden>
+                <span><b>最大迭代数</b><output for="focvIterations" id="focvIterationsValue">150</output></span>
+                <input id="focvIterations" type="range" min="1" max="300" step="1" value="150" />
+              </label>
+              <label class="parameter iteration-parameter" id="scanIterationParameter" hidden>
+                <span><b>最大迭代数</b><output for="scanIterations" id="scanIterationsValue">150</output></span>
+                <input id="scanIterations" type="range" min="1" max="300" step="1" value="150" />
+              </label>
+              <label class="parameter iteration-parameter" id="escIterationParameter" hidden>
+                <span><b>最大迭代数</b><output for="escIterations" id="escIterationsValue">150</output></span>
+                <input id="escIterations" type="range" min="1" max="300" step="1" value="150" />
+              </label>
+              <label class="parameter iteration-parameter" id="saIterationParameter" hidden>
+                <span><b>最大迭代数</b><output for="saIterations" id="saIterationsValue">150</output></span>
+                <input id="saIterations" type="range" min="1" max="300" step="1" value="150" />
+              </label>
+              <label class="parameter iteration-parameter" id="gaIterationParameter" hidden>
+                <span><b>最大迭代数</b><output for="gaIterations" id="gaIterationsValue">150</output></span>
+                <input id="gaIterations" type="range" min="1" max="300" step="1" value="150" />
+              </label>
+              <label class="parameter iteration-parameter" id="csIterationParameter" hidden>
+                <span><b>最大迭代数</b><output for="csIterations" id="csIterationsValue">150</output></span>
+                <input id="csIterations" type="range" min="1" max="300" step="1" value="150" />
+              </label>
+              <label class="parameter iteration-parameter" id="incIterationParameter" hidden>
+                <span><b>最大迭代数</b><output for="incIterations" id="incIterationsValue">150</output></span>
+                <input id="incIterations" type="range" min="1" max="300" step="1" value="150" />
+              </label>
+              <label class="parameter iteration-parameter" id="vincIterationParameter" hidden>
+                <span><b>最大迭代数</b><output for="vincIterations" id="vincIterationsValue">150</output></span>
+                <input id="vincIterations" type="range" min="1" max="300" step="1" value="150" />
+              </label>
+              <label class="parameter iteration-parameter" id="mpcIterationParameter" hidden>
+                <span><b>最大迭代数</b><output for="mpcIterations" id="mpcIterationsValue">150</output></span>
+                <input id="mpcIterations" type="range" min="1" max="300" step="1" value="150" />
+              </label>
+              <label class="parameter iteration-parameter" id="fuzzyIterationParameter" hidden>
+                <span><b>最大迭代数</b><output for="fuzzyIterations" id="fuzzyIterationsValue">150</output></span>
+                <input id="fuzzyIterations" type="range" min="1" max="300" step="1" value="150" />
+              </label>
+              <label class="parameter iteration-parameter" id="abcIterationParameter" hidden>
+                <span><b>最大迭代数</b><output for="abcIterations" id="abcIterationsValue">150</output></span>
+                <input id="abcIterations" type="range" min="1" max="300" step="1" value="150" />
+              </label>
+              <label class="parameter iteration-parameter" id="afsaIterationParameter" hidden>
+                <span><b>最大迭代数</b><output for="afsaIterations" id="afsaIterationsValue">150</output></span>
+                <input id="afsaIterations" type="range" min="1" max="300" step="1" value="150" />
+              </label>
+              <label class="parameter iteration-parameter" id="deIterationParameter" hidden>
+                <span><b>最大迭代数</b><output for="deIterations" id="deIterationsValue">150</output></span>
+                <input id="deIterations" type="range" min="1" max="300" step="1" value="150" />
+              </label>
+              <label class="parameter iteration-parameter" id="nnIterationParameter" hidden>
+                <span><b>最大迭代数</b><output for="nnIterations" id="nnIterationsValue">150</output></span>
+                <input id="nnIterations" type="range" min="1" max="300" step="1" value="150" />
+              </label>
+              <label class="parameter iteration-parameter" id="svrIterationParameter" hidden>
+                <span><b>最大迭代数</b><output for="svrIterations" id="svrIterationsValue">150</output></span>
+                <input id="svrIterations" type="range" min="1" max="300" step="1" value="150" />
+              </label>
+              <label class="parameter iteration-parameter" id="rfIterationParameter" hidden>
+                <span><b>最大迭代数</b><output for="rfIterations" id="rfIterationsValue">150</output></span>
+                <input id="rfIterations" type="range" min="1" max="300" step="1" value="150" />
+              </label>
+              <label class="parameter iteration-parameter" id="rlIterationParameter" hidden>
+                <span><b>最大迭代数</b><output for="rlIterations" id="rlIterationsValue">150</output></span>
+                <input id="rlIterations" type="range" min="1" max="300" step="1" value="150" />
+              </label>
+              </div>
+            </section>
+
+            <section class="parameter-section algorithm-parameter-section" aria-labelledby="algorithmParameterTitle">
+              <h4 id="algorithmParameterTitle">MPPT算法参数</h4>
+              <div class="parameter-list algorithm-parameters" id="psoParameters">
+              <label class="parameter">
+                <span><b>粒子数</b><output for="particleCount" id="particleCountValue">5</output></span>
+                <input id="particleCount" type="range" min="2" max="10" step="1" value="5" />
+              </label>
+              <label class="parameter">
+                <span><b>惯性权重 <i>w</i></b><output for="inertia" id="inertiaValue">0.50</output></span>
+                <input id="inertia" type="range" min="0" max="2" step="0.05" value="0.5" />
+              </label>
+              <label class="parameter">
+                <span><b>个体学习因子 <i>c₁</i></b><output for="cognitive" id="cognitiveValue">0.30</output></span>
+                <input id="cognitive" type="range" min="0" max="2" step="0.1" value="0.3" />
+              </label>
+              <label class="parameter">
+                <span><b>社会学习因子 <i>c₂</i></b><output for="social" id="socialValue">1.50</output></span>
+                <input id="social" type="range" min="0" max="2" step="0.1" value="1.5" />
+              </label>
+              <label class="parameter">
+                <span><b>最大速度</b><output for="maxVelocity" id="maxVelocityValue">10%</output></span>
+                <input id="maxVelocity" type="range" min="1" max="30" step="1" value="10" />
+              </label>
+              <label class="distribution-field"><span>初始位置分布</span><select id="initialDistribution"><option value="random">随机分布</option><option value="uniform" selected>均匀分布</option></select></label>
+            </div>
+
+            <div class="parameter-list algorithm-parameters" id="poParameters" hidden>
+              <label class="parameter">
+                <span><b>扰动步长 ΔU</b><output for="poStep" id="poStepValue">2.00 V</output></span>
+                <input id="poStep" type="range" min="0.1" max="10" step="0.1" value="2" />
+              </label>
+              <label class="parameter">
+                <span><b>最大速度</b><output for="poMaxVelocity" id="poMaxVelocityValue">10%</output></span>
+                <input id="poMaxVelocity" type="range" min="1" max="30" step="1" value="10" />
+              </label>
+            </div>
+
+            <div class="parameter-list algorithm-parameters" id="hcParameters" hidden>
+              <label class="parameter"><span><b>爬山步长 ΔU</b><output for="hcStep" id="hcStepValue">1.00 V</output></span><input id="hcStep" type="range" min="0.1" max="10" step="0.1" value="1" /></label>
+              <label class="parameter"><span><b>功率死区 ε<sub>P</sub></b><output for="hcDeadband" id="hcDeadbandValue">0.50 W</output></span><input id="hcDeadband" type="range" min="0" max="10" step="0.1" value="0.5" /></label>
+              <label class="parameter"><span><b>最大速度</b><output for="hcMaxVelocity" id="hcMaxVelocityValue">10%</output></span><input id="hcMaxVelocity" type="range" min="1" max="30" step="1" value="10" /></label>
+            </div>
+
+            <div class="parameter-list algorithm-parameters" id="vpoParameters" hidden>
+              <label class="parameter"><span><b>最小扰动步长</b><output for="vpoMinStep" id="vpoMinStepValue">0.10 V</output></span><input id="vpoMinStep" type="range" min="0" max="5" step="0.05" value="0.1" /></label>
+              <label class="parameter"><span><b>最大扰动步长</b><output for="vpoMaxStep" id="vpoMaxStepValue">2.00 V</output></span><input id="vpoMaxStep" type="range" min="0.1" max="15" step="0.1" value="2" /></label>
+              <label class="parameter"><span><b>斜率增益 K<sub>s</sub></b><output for="vpoSlopeGain" id="vpoSlopeGainValue">0.50</output></span><input id="vpoSlopeGain" type="range" min="0.1" max="3" step="0.1" value="0.5" /></label>
+              <label class="parameter"><span><b>最大速度</b><output for="vpoMaxVelocity" id="vpoMaxVelocityValue">10%</output></span><input id="vpoMaxVelocity" type="range" min="1" max="30" step="1" value="10" /></label>
+            </div>
+
+            <div class="parameter-list algorithm-parameters" id="jeincParameters" hidden>
+              <label class="parameter">
+                <span><b>INC 搜索步长 ΔU</b><output for="jeincStep" id="jeincStepValue">1.00 V</output></span>
+                <input id="jeincStep" type="range" min="0.1" max="10" step="0.1" value="1" />
+              </label>
+              <label class="parameter">
+                <span><b>跃变探索深度 U<sub>e</sub></b><output for="jeincJumpDepth" id="jeincJumpDepthValue">3.00 V</output></span>
+                <input id="jeincJumpDepth" type="range" min="1" max="30" step="0.5" value="3" />
+              </label>
+              <label class="parameter">
+                <span><b>最大跃变次数 N</b><output for="jeincMaxJumps" id="jeincMaxJumpsValue">4</output></span>
+                <input id="jeincMaxJumps" type="range" min="1" max="10" step="1" value="4" />
+              </label>
+              <label class="parameter">
+                <span><b>最大速度</b><output for="jeincMaxVelocity" id="jeincMaxVelocityValue">15%</output></span>
+                <input id="jeincMaxVelocity" type="range" min="1" max="30" step="1" value="15" />
+              </label>
+            </div>
+
+            <div class="parameter-list algorithm-parameters" id="cvtParameters" hidden>
+              <label class="parameter">
+                <span><b>参考开路电压 U<sub>oc</sub></b><output for="cvtVoc" id="cvtVocValue">88.00 V</output></span>
+                <input id="cvtVoc" type="range" min="1" max="100" step="0.5" value="88" />
+              </label>
+              <label class="parameter">
+                <span><b>最大速度</b><output for="cvtMaxVelocity" id="cvtMaxVelocityValue">10%</output></span>
+                <input id="cvtMaxVelocity" type="range" min="1" max="30" step="1" value="10" />
+              </label>
+            </div>
+
+            <div class="parameter-list algorithm-parameters" id="focvParameters" hidden>
+              <label class="parameter"><span><b>开路电压比例 K<sub>oc</sub></b><output for="focvRatio" id="focvRatioValue">0.76</output></span><input id="focvRatio" type="range" min="0.5" max="0.95" step="0.01" value="0.76" /></label>
+              <label class="parameter"><span><b>开路采样周期</b><output for="focvSamplePeriod" id="focvSamplePeriodValue">20</output></span><input id="focvSamplePeriod" type="range" min="2" max="60" step="1" value="20" /></label>
+              <label class="parameter"><span><b>最大速度</b><output for="focvMaxVelocity" id="focvMaxVelocityValue">10%</output></span><input id="focvMaxVelocity" type="range" min="1" max="30" step="1" value="10" /></label>
+            </div>
+
+            <div class="parameter-list algorithm-parameters" id="scanParameters" hidden>
+              <label class="parameter"><span><b>扫描电压步长 ΔU</b><output for="scanStep" id="scanStepValue">2.00 V</output></span><input id="scanStep" type="range" min="0.1" max="10" step="0.1" value="2" /></label>
+              <label class="parameter"><span><b>扫描保持周期</b><output for="scanHold" id="scanHoldValue">1</output></span><input id="scanHold" type="range" min="1" max="10" step="1" value="1" /></label>
+              <label class="parameter"><span><b>最大速度</b><output for="scanMaxVelocity" id="scanMaxVelocityValue">10%</output></span><input id="scanMaxVelocity" type="range" min="1" max="30" step="1" value="10" /></label>
+            </div>
+
+            <div class="parameter-list algorithm-parameters" id="escParameters" hidden>
+              <label class="parameter"><span><b>扰动幅值 A</b><output for="escAmplitude" id="escAmplitudeValue">1.00 V</output></span><input id="escAmplitude" type="range" min="0.1" max="10" step="0.1" value="1" /></label>
+              <label class="parameter"><span><b>积分增益 K</b><output for="escGain" id="escGainValue">0.50</output></span><input id="escGain" type="range" min="0.05" max="2" step="0.05" value="0.5" /></label>
+              <label class="parameter"><span><b>扰动周期 N</b><output for="escPeriod" id="escPeriodValue">8</output></span><input id="escPeriod" type="range" min="4" max="40" step="1" value="8" /></label>
+              <label class="parameter"><span><b>最大速度</b><output for="escMaxVelocity" id="escMaxVelocityValue">10%</output></span><input id="escMaxVelocity" type="range" min="1" max="30" step="1" value="10" /></label>
+            </div>
+
+            <div class="parameter-list algorithm-parameters" id="saParameters" hidden>
+              <label class="parameter"><span><b>初始温度 T<sub>0</sub></b><output for="saTemperature" id="saTemperatureValue">80.00</output></span><input id="saTemperature" type="range" min="1" max="200" step="1" value="80" /></label>
+              <label class="parameter"><span><b>冷却系数 α</b><output for="saCooling" id="saCoolingValue">0.95</output></span><input id="saCooling" type="range" min="0.8" max="0.999" step="0.001" value="0.95" /></label>
+              <label class="parameter"><span><b>邻域步长</b><output for="saStep" id="saStepValue">8.00 V</output></span><input id="saStep" type="range" min="0.1" max="30" step="0.1" value="8" /></label>
+            </div>
+
+            <div class="parameter-list algorithm-parameters" id="gaParameters" hidden>
+              <label class="parameter"><span><b>种群规模</b><output for="gaPopulation" id="gaPopulationValue">5</output></span><input id="gaPopulation" type="range" min="2" max="10" step="1" value="5" /></label>
+              <label class="parameter"><span><b>交叉概率</b><output for="gaCrossover" id="gaCrossoverValue">0.30</output></span><input id="gaCrossover" type="range" min="0" max="1" step="0.05" value="0.3" /></label>
+              <label class="parameter"><span><b>变异概率</b><output for="gaMutation" id="gaMutationValue">0.20</output></span><input id="gaMutation" type="range" min="0" max="1" step="0.01" value="0.2" /></label>
+              <label class="parameter"><span><b>变异范围</b><output for="gaMutationSpan" id="gaMutationSpanValue">10%</output></span><input id="gaMutationSpan" type="range" min="1" max="50" step="1" value="10" /></label>
+              <label class="distribution-field"><span>初始位置分布</span><select id="gaInitialDistribution"><option value="random">随机分布</option><option value="uniform" selected>均匀分布</option></select></label>
+            </div>
+
+            <div class="parameter-list algorithm-parameters" id="csParameters" hidden>
+              <label class="parameter"><span><b>巢穴数</b><output for="csNests" id="csNestsValue">5</output></span><input id="csNests" type="range" min="2" max="10" step="1" value="5" /></label>
+              <label class="parameter"><span><b>Lévy 飞行尺度 α</b><output for="csLevyScale" id="csLevyScaleValue">50%</output></span><input id="csLevyScale" type="range" min="0" max="100" step="1" value="50" /></label>
+              <label class="parameter"><span><b>巢穴发现概率 p<sub>a</sub></b><output for="csDiscovery" id="csDiscoveryValue">0.00</output></span><input id="csDiscovery" type="range" min="0" max="1" step="0.05" value="0" /></label>
+              <label class="distribution-field"><span>初始位置分布</span><select id="csInitialDistribution"><option value="random">随机分布</option><option value="uniform" selected>均匀分布</option></select></label>
+            </div>
+
+            <div class="parameter-list algorithm-parameters" id="incParameters" hidden>
+              <label class="parameter"><span><b>电压调整步长 ΔU</b><output for="incStep" id="incStepValue">2.00 V</output></span><input id="incStep" type="range" min="0.1" max="10" step="0.1" value="2" /></label>
+              <label class="parameter"><span><b>电导判据容差 ε</b><output for="incTolerance" id="incToleranceValue">0.020</output></span><input id="incTolerance" type="range" min="0" max="0.2" step="0.005" value="0.02" /></label>
+              <label class="parameter"><span><b>最大速度</b><output for="incMaxVelocity" id="incMaxVelocityValue">10%</output></span><input id="incMaxVelocity" type="range" min="1" max="30" step="1" value="10" /></label>
+            </div>
+
+            <div class="parameter-list algorithm-parameters" id="vincParameters" hidden>
+              <label class="parameter"><span><b>最小电压步长</b><output for="vincMinStep" id="vincMinStepValue">0.10 V</output></span><input id="vincMinStep" type="range" min="0.05" max="5" step="0.05" value="0.1" /></label>
+              <label class="parameter"><span><b>最大电压步长</b><output for="vincMaxStep" id="vincMaxStepValue">2.00 V</output></span><input id="vincMaxStep" type="range" min="0.1" max="15" step="0.1" value="2" /></label>
+              <label class="parameter"><span><b>斜率补偿系数 γ</b><output for="vincCompensation" id="vincCompensationValue">0.80</output></span><input id="vincCompensation" type="range" min="0" max="2" step="0.05" value="0.8" /></label>
+              <label class="parameter"><span><b>电导判据容差 ε</b><output for="vincTolerance" id="vincToleranceValue">0.020</output></span><input id="vincTolerance" type="range" min="0" max="0.2" step="0.005" value="0.02" /></label>
+              <label class="parameter"><span><b>最大速度</b><output for="vincMaxVelocity" id="vincMaxVelocityValue">10%</output></span><input id="vincMaxVelocity" type="range" min="1" max="30" step="1" value="10" /></label>
+            </div>
+
+            <div class="parameter-list algorithm-parameters" id="mpcParameters" hidden>
+              <label class="parameter"><span><b>候选电压步长 ΔU</b><output for="mpcStep" id="mpcStepValue">2.00 V</output></span><input id="mpcStep" type="range" min="0.1" max="10" step="0.1" value="2" /></label>
+              <label class="parameter"><span><b>预测时域 N<sub>p</sub></b><output for="mpcHorizon" id="mpcHorizonValue">3</output></span><input id="mpcHorizon" type="range" min="1" max="8" step="1" value="3" /></label>
+              <label class="parameter"><span><b>控制增量惩罚 λ</b><output for="mpcPenalty" id="mpcPenaltyValue">0.05</output></span><input id="mpcPenalty" type="range" min="0" max="1" step="0.01" value="0.05" /></label>
+              <label class="parameter"><span><b>最大速度</b><output for="mpcMaxVelocity" id="mpcMaxVelocityValue">10%</output></span><input id="mpcMaxVelocity" type="range" min="1" max="30" step="1" value="10" /></label>
+            </div>
+
+            <div class="parameter-list algorithm-parameters" id="fuzzyParameters" hidden>
+              <label class="parameter"><span><b>最大电压步长</b><output for="fuzzyStep" id="fuzzyStepValue">4.00 V</output></span><input id="fuzzyStep" type="range" min="0.1" max="15" step="0.1" value="4" /></label>
+              <label class="parameter"><span><b>误差缩放因子 K<sub>e</sub></b><output for="fuzzyErrorGain" id="fuzzyErrorGainValue">1.00</output></span><input id="fuzzyErrorGain" type="range" min="0.1" max="5" step="0.1" value="1" /></label>
+              <label class="parameter"><span><b>误差变化缩放 K<sub>ce</sub></b><output for="fuzzyDeltaGain" id="fuzzyDeltaGainValue">0.50</output></span><input id="fuzzyDeltaGain" type="range" min="0" max="5" step="0.1" value="0.5" /></label>
+            </div>
+
+            <div class="parameter-list algorithm-parameters" id="abcParameters" hidden>
+              <label class="parameter"><span><b>蜂群规模</b><output for="abcPopulation" id="abcPopulationValue">5</output></span><input id="abcPopulation" type="range" min="2" max="10" step="1" value="5" /></label>
+              <label class="parameter"><span><b>邻域搜索系数 φ</b><output for="abcPhi" id="abcPhiValue">1.00</output></span><input id="abcPhi" type="range" min="0.1" max="2" step="0.1" value="1" /></label>
+              <label class="parameter"><span><b>侏察蜂引导系数</b><output for="abcBestGain" id="abcBestGainValue">0.60</output></span><input id="abcBestGain" type="range" min="0" max="2" step="0.1" value="0.6" /></label>
+              <label class="distribution-field"><span>初始位置分布</span><select id="abcInitialDistribution"><option value="random">随机分布</option><option value="uniform" selected>均匀分布</option></select></label>
+            </div>
+
+            <div class="parameter-list algorithm-parameters" id="afsaParameters" hidden>
+              <label class="parameter"><span><b>人工鱼数</b><output for="afsaPopulation" id="afsaPopulationValue">5</output></span><input id="afsaPopulation" type="range" min="2" max="10" step="1" value="5" /></label>
+              <label class="parameter"><span><b>感知距离 Visual</b><output for="afsaVisual" id="afsaVisualValue">80%</output></span><input id="afsaVisual" type="range" min="1" max="100" step="1" value="80" /></label>
+              <label class="parameter"><span><b>移动步长 Step</b><output for="afsaStep" id="afsaStepValue">26%</output></span><input id="afsaStep" type="range" min="1" max="50" step="1" value="26" /></label>
+              <label class="parameter"><span><b>拥挤度因子 δ</b><output for="afsaCrowd" id="afsaCrowdValue">0.65</output></span><input id="afsaCrowd" type="range" min="0" max="1" step="0.05" value="0.65" /></label>
+              <label class="parameter"><span><b>试探次数 Try-number</b><output for="afsaTry" id="afsaTryValue">7</output></span><input id="afsaTry" type="range" min="1" max="10" step="1" value="7" /></label>
+              <label class="distribution-field"><span>初始位置分布</span><select id="afsaInitialDistribution"><option value="random">随机分布</option><option value="uniform" selected>均匀分布</option></select></label>
+            </div>
+
+            <div class="parameter-list algorithm-parameters" id="deParameters" hidden>
+              <label class="parameter"><span><b>种群规模</b><output for="dePopulation" id="dePopulationValue">5</output></span><input id="dePopulation" type="range" min="4" max="10" step="1" value="5" /></label>
+              <label class="parameter"><span><b>差分缩放因子 F</b><output for="deFactor" id="deFactorValue">0.20</output></span><input id="deFactor" type="range" min="0" max="2" step="0.05" value="0.2" /></label>
+              <label class="parameter"><span><b>交叉概率 CR</b><output for="deCrossover" id="deCrossoverValue">0.60</output></span><input id="deCrossover" type="range" min="0" max="1" step="0.05" value="0.6" /></label>
+              <label class="distribution-field"><span>初始位置分布</span><select id="deInitialDistribution"><option value="random">随机分布</option><option value="uniform" selected>均匀分布</option></select></label>
+            </div>
+
+            <div class="parameter-list algorithm-parameters" id="nnParameters" hidden>
+              <label class="parameter"><span><b>隐藏层神经元数</b><output for="nnHidden" id="nnHiddenValue">6</output></span><input id="nnHidden" type="range" min="2" max="16" step="1" value="6" /></label>
+              <label class="parameter"><span><b>学习率 η</b><output for="nnLearningRate" id="nnLearningRateValue">0.08</output></span><input id="nnLearningRate" type="range" min="0.005" max="0.5" step="0.005" value="0.08" /></label>
+              <label class="parameter"><span><b>训练轮数 Epochs</b><output for="nnEpochs" id="nnEpochsValue">1200</output></span><input id="nnEpochs" type="range" min="100" max="5000" step="100" value="1200" /></label>
+              <label class="parameter"><span><b>最大速度</b><output for="nnMaxVelocity" id="nnMaxVelocityValue">10%</output></span><input id="nnMaxVelocity" type="range" min="1" max="30" step="1" value="10" /></label>
+            </div>
+
+            <div class="parameter-list algorithm-parameters" id="svrParameters" hidden>
+              <label class="parameter"><span><b>惩罚系数 C</b><output for="svrPenalty" id="svrPenaltyValue">20.00</output></span><input id="svrPenalty" type="range" min="0.1" max="100" step="0.1" value="20" /></label>
+              <label class="parameter"><span><b>不敏感区宽度 ε</b><output for="svrEpsilon" id="svrEpsilonValue">0.010</output></span><input id="svrEpsilon" type="range" min="0" max="0.2" step="0.005" value="0.01" /></label>
+              <label class="parameter"><span><b>RBF 核参数 γ</b><output for="svrGamma" id="svrGammaValue">0.80</output></span><input id="svrGamma" type="range" min="0.05" max="5" step="0.05" value="0.8" /></label>
+              <label class="parameter"><span><b>最大速度</b><output for="svrMaxVelocity" id="svrMaxVelocityValue">10%</output></span><input id="svrMaxVelocity" type="range" min="1" max="30" step="1" value="10" /></label>
+            </div>
+
+            <div class="parameter-list algorithm-parameters" id="rfParameters" hidden>
+              <label class="parameter"><span><b>决策树数量</b><output for="rfTrees" id="rfTreesValue">31</output></span><input id="rfTrees" type="range" min="3" max="101" step="2" value="31" /></label>
+              <label class="parameter"><span><b>最大树深度</b><output for="rfDepth" id="rfDepthValue">4</output></span><input id="rfDepth" type="range" min="1" max="8" step="1" value="4" /></label>
+              <label class="parameter"><span><b>样本采样比例</b><output for="rfSampleRatio" id="rfSampleRatioValue">80%</output></span><input id="rfSampleRatio" type="range" min="30" max="100" step="5" value="80" /></label>
+              <label class="parameter"><span><b>最大速度</b><output for="rfMaxVelocity" id="rfMaxVelocityValue">10%</output></span><input id="rfMaxVelocity" type="range" min="1" max="30" step="1" value="10" /></label>
+            </div>
+
+            <div class="parameter-list algorithm-parameters" id="rlParameters" hidden>
+              <label class="parameter"><span><b>学习率 α</b><output for="rlLearningRate" id="rlLearningRateValue">0.25</output></span><input id="rlLearningRate" type="range" min="0.01" max="1" step="0.01" value="0.25" /></label>
+              <label class="parameter"><span><b>折扣因子 γ</b><output for="rlDiscount" id="rlDiscountValue">0.95</output></span><input id="rlDiscount" type="range" min="0" max="0.99" step="0.01" value="0.95" /></label>
+              <label class="parameter"><span><b>探索率 ε</b><output for="rlExploration" id="rlExplorationValue">0.20</output></span><input id="rlExploration" type="range" min="0" max="1" step="0.01" value="0.2" /></label>
+              <label class="parameter"><span><b>训练回合数</b><output for="rlEpisodes" id="rlEpisodesValue">800</output></span><input id="rlEpisodes" type="range" min="100" max="3000" step="100" value="800" /></label>
+              <label class="parameter"><span><b>电压动作步长 ΔU</b><output for="rlStep" id="rlStepValue">2.00 V</output></span><input id="rlStep" type="range" min="0.5" max="10" step="0.5" value="2" /></label>
+            </div>
+            </section>
+
+            <div class="parameter-actions">
+              <button class="parameter-help-button" id="parameterHelpButton" type="button" aria-haspopup="dialog" aria-controls="parameterHelpModal"><span aria-hidden="true">?</span><span>MPPT算法参数解释</span></button>
+              <button class="parameter-reset-button" id="resetAlgorithmButton" type="button"><span aria-hidden="true">↺</span><span>参数初始化</span></button>
+            </div>
+            <p class="machine-learning-note" id="machineLearningNote" role="note" hidden>说明：所选工况的光伏运行数据同时作为训练集和测试集，并非基于大量独立数据训练，结果仅用于演示，不具有代表性。</p>
+            <button class="button run-button" id="runButton" type="button"><span class="play-icon">▶</span><span id="runButtonLabel">运行 P&amp;O</span></button>
+            <button class="text-button" id="downloadButton" type="button" disabled>↓ 下载运行数据 CSV</button>
+          </aside>
+
+          <div class="visualization-area">
+            <div class="metrics" aria-live="polite">
+              <article><span id="metricIterationLabel">当前迭代</span><strong id="metricIteration">0 <small>/ 150</small></strong></article>
+              <article><span id="metricVoltageLabel">工作电压</span><strong id="metricVoltage">— <small>V</small></strong></article>
+              <article><span id="metricPowerLabel">工作功率</span><strong id="metricPower">— <small>W</small></strong></article>
+              <article class="accent"><span>MPPT 效率</span><strong id="metricEfficiency">— <small>%</small></strong></article>
+            </div>
+
+            <article class="chart-card chart-current">
+              <div class="chart-head">
+                <div><span class="chart-number">A</span><h3>光伏 MPPT 控制系统</h3></div>
+                <div class="legend array-condition-legend" id="currentLegend" aria-label="当前工况下各光伏模块的辐照度"></div>
+              </div>
+              <div class="canvas-wrap system-diagram-wrap"><canvas id="iuChart" aria-label="四块光伏模块、Boost 变换器、MPPT 控制器与电阻负载系统架构图"></canvas></div>
+            </article>
+
+            <article class="chart-card chart-primary">
+              <div class="chart-head">
+                <div><span class="chart-number">B</span><h3>P–U 搜索空间</h3></div>
+                <div class="legend" id="searchLegend"><span><i class="dot particle-dot"></i>粒子</span><span><i class="dot actual-dot"></i>Boost 实际工作点</span><span><i class="dot best-dot"></i>gbest</span><span><i class="dot gmpp-dot"></i>GMPP</span></div>
+              </div>
+              <div class="canvas-wrap"><canvas id="puChart" aria-label="P-U 曲线与粒子位置"></canvas></div>
+            </article>
+
+            <article class="chart-card chart-secondary">
+              <div class="chart-head">
+                <div><span class="chart-number">C</span><h3 id="powerChartTitle">工作点功率轨迹</h3></div>
+                <div id="particleLegend" class="particle-legend" aria-label="粒子图例"></div>
+              </div>
+              <div class="canvas-wrap convergence-wrap"><canvas id="convergenceChart" aria-label="各粒子功率随迭代次数的变化曲线"></canvas></div>
+            </article>
+
+            <article class="chart-card chart-output">
+              <div class="chart-head">
+                <div><span class="chart-number">D</span><h3>光伏阵列输出功率波形</h3></div>
+                <div class="output-model-note" aria-label="波形图例">
+                  <span><i class="command-line"></i>参考点理论功率</span>
+                  <span><i class="output-line"></i>实际光伏功率</span>
+                </div>
+              </div>
+              <div class="canvas-wrap output-wrap"><canvas id="outputPowerChart" aria-label="光伏阵列输出功率波形"></canvas></div>
+            </article>
+
+            <div class="playback" aria-label="动画播放控制">
+              <select id="speed" aria-label="播放速度"><option value="900">0.5×</option><option value="500" selected>1×</option><option value="250">2×</option><option value="110">4×</option><option value="55">8×</option></select>
+              <button id="previousButton" aria-label="上一次迭代">←</button>
+              <button id="playButton" class="play-toggle" aria-label="播放或暂停">▶</button>
+              <button id="nextButton" aria-label="下一次迭代">→</button>
+              <input id="timeline" type="range" min="0" max="150" step="1" value="0" aria-label="迭代进度" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <footer><span>该网站运行基于 Boost 大信号模型和光伏 P–U 特性曲线</span></footer>
+    <div class="parameter-help-modal" id="parameterHelpModal" role="dialog" aria-modal="true" aria-labelledby="parameterHelpTitle" hidden>
+      <div class="parameter-help-dialog" role="document">
+        <header class="parameter-help-header">
+          <div>
+            <h2 id="parameterHelpTitle">参数说明</h2>
+          </div>
+          <button class="parameter-help-close" id="parameterHelpClose" type="button" aria-label="关闭参数解释">×</button>
+        </header>
+        <div class="parameter-help-list" id="parameterHelpList"></div>
+        <p class="parameter-help-disclaimer" id="parameterHelpDisclaimer"></p>
+        <section class="parameter-help-references" id="parameterHelpReferences" aria-labelledby="parameterHelpReferencesTitle">
+          <h3 id="parameterHelpReferencesTitle">参考文献</h3>
+          <ol id="parameterHelpReferenceList"></ol>
+        </section>
+      </div>
+    </div>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <script src="./app.js?v=20261012-parameter-references" defer></script>
+  </body>
+</html>
+
