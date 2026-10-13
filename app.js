@@ -8,11 +8,13 @@ const state = {
   algorithm: 'po',
   language: 'en',
 };
+let renderFrameHandle = 0;
+let canvasResizeObserver = null;
 
 const systemDiagramImage = new Image();
-systemDiagramImage.src = './assets/mppt-system-irradiance-v2.jpg';
+systemDiagramImage.src = './assets/mppt-system-irradiance-v2.png';
 systemDiagramImage.addEventListener('load', () => {
-  if (state.data) render();
+  if (state.data) queueCanvasRender();
 });
 
 const conditionIrradiancePatterns = [
@@ -109,6 +111,7 @@ const controls = {
   abcPopulation: $('#abcPopulation'),
   abcPhi: $('#abcPhi'),
   abcBestGain: $('#abcBestGain'),
+  abcAbandonLimit: $('#abcAbandonLimit'),
   abcInitialDistribution: $('#abcInitialDistribution'),
   abcIterations: $('#abcIterations'),
   afsaPopulation: $('#afsaPopulation'),
@@ -144,6 +147,12 @@ const controls = {
   rlEpisodes: $('#rlEpisodes'),
   rlStep: $('#rlStep'),
   rlIterations: $('#rlIterations'),
+  dqnLearningRate: $('#dqnLearningRate'), dqnDiscount: $('#dqnDiscount'), dqnExploration: $('#dqnExploration'), dqnReplay: $('#dqnReplay'), dqnStep: $('#dqnStep'), dqnIterations: $('#dqnIterations'),
+  sacActorRate: $('#sacActorRate'), sacDiscount: $('#sacDiscount'), sacEntropy: $('#sacEntropy'), sacMaxAction: $('#sacMaxAction'), sacIterations: $('#sacIterations'),
+  psoPoPopulation: $('#psoPoPopulation'), psoPoSwitch: $('#psoPoSwitch'), psoPoStep: $('#psoPoStep'), psoPoInitialDistribution: $('#psoPoInitialDistribution'), psoPoIterations: $('#psoPoIterations'),
+  gaPoPopulation: $('#gaPoPopulation'), gaPoMutation: $('#gaPoMutation'), gaPoStep: $('#gaPoStep'), gaPoInitialDistribution: $('#gaPoInitialDistribution'), gaPoIterations: $('#gaPoIterations'),
+  gaFuzzyPopulation: $('#gaFuzzyPopulation'), gaFuzzyStep: $('#gaFuzzyStep'), gaFuzzyGain: $('#gaFuzzyGain'), gaFuzzyInitialDistribution: $('#gaFuzzyInitialDistribution'), gaFuzzyIterations: $('#gaFuzzyIterations'),
+  gaAnnPopulation: $('#gaAnnPopulation'), gaAnnMutation: $('#gaAnnMutation'), gaAnnGuide: $('#gaAnnGuide'), gaAnnInitialDistribution: $('#gaAnnInitialDistribution'), gaAnnIterations: $('#gaAnnIterations'),
   updateTime: $('#updateTime'),
   inductance: $('#inductance'),
   capacitance: $('#capacitance'),
@@ -464,13 +473,20 @@ const algorithmContent = {
     entityPrefix: 'D',
     iterationKey: 'deIterations',
   },
+  dqn: { shortName: 'DQN', title: '深度Q网络(DQN)实现光伏MPPT', description: '本地教学演示以轻量化函数近似器表示离散电压动作的 Q 值，并用 ε-贪婪决策展示 DQN 的 MPPT 控制逻辑；不复现论文训练规模。', formulaLabelOne: '时序差分目标', formulaOne: 'y = r + γ max<sub>a′</sub>Q<sub>target</sub>(s′,a′)', formulaLabelTwo: '网络损失', formulaTwo: 'L(θ)=E[(y−Q(s,a;θ))<sup>2</sup>]', chartTitle: 'DQN 功率轨迹', runLabel: '运行 DQN', tracksBest: true, iterationKey: 'dqnIterations' },
+  sac: { shortName: 'SAC', title: 'Soft Actor-Critic(SAC)实现光伏MPPT', description: '本地教学演示以轻量化连续策略近似 SAC 的功率寻优与熵探索权衡；不复现论文中的完整双 Q 网络和离线训练规模。', formulaLabelOne: '软状态值目标', formulaOne: 'y = r + γ[Q<sub>target</sub>(s′,a′) − α log π(a′|s′)]', formulaLabelTwo: '连续策略动作', formulaTwo: 'ΔU = ΔU<sub>max</sub> tanh(μ(s)+σ(s)ε)', chartTitle: 'SAC 连续控制功率轨迹', runLabel: '运行 SAC', tracksBest: true, iterationKey: 'sacIterations' },
+  pso_po: { shortName: 'PSO+P&O', title: '粒子群+P&O混合算法实现光伏MPPT', description: '先由 PSO 在多峰 P–U 曲线上定位高质量区域，再切换到小步长 P&O 完成局部跟踪并降低稳态振荡。', formulaLabelOne: '全局搜索', formulaOne: 'v<sub>i</sub>←wv<sub>i</sub>+c<sub>1</sub>r<sub>1</sub>(pbest<sub>i</sub>−x<sub>i</sub>)+c<sub>2</sub>r<sub>2</sub>(gbest−x<sub>i</sub>)', formulaLabelTwo: '局部精修', formulaTwo: 'U<sub>ref</sub>(k+1)=U<sub>ref</sub>(k)+ΔU<sub>PO</sub>·sgn(ΔPΔU)', chartTitle: 'PSO+P&O 功率轨迹', runLabel: '运行 PSO+P&O', population: true, tracksBest: true, iterationKey: 'psoPoIterations' },
+  ga_po: { shortName: 'GA+P&O', title: '遗传算法+P&O混合算法实现光伏MPPT', description: '遗传算法先执行全局种群搜索，随后把最优个体交给 P&O 进行局部精细跟踪。', formulaLabelOne: '遗传全局搜索', formulaOne: 'U<sub>c</sub>=λU<sub>p1</sub>+(1−λ)U<sub>p2</sub>+mutation', formulaLabelTwo: 'P&O 局部搜索', formulaTwo: 'U<sub>ref</sub>(k+1)=U<sub>ref</sub>(k)+ΔU<sub>PO</sub>·sgn(ΔPΔU)', chartTitle: 'GA+P&O 功率轨迹', runLabel: '运行 GA+P&O', population: true, tracksBest: true, iterationKey: 'gaPoIterations' },
+  ga_fuzzy: { shortName: 'GA+FLC', title: '遗传算法+模糊控制实现光伏MPPT', description: 'GA 优化模糊控制器的尺度与搜索起点，在线模糊推理再根据功率斜率及其变化量生成连续电压修正。', formulaLabelOne: 'GA 参数优化', formulaOne: '(K<sub>e</sub>,K<sub>ce</sub>,K<sub>u</sub>)* = arg max η<sub>MPPT</sub>', formulaLabelTwo: '模糊控制输出', formulaTwo: 'ΔU = Σ μ<sub>j</sub>z<sub>j</sub>/Σ μ<sub>j</sub>', chartTitle: 'GA+模糊控制功率轨迹', runLabel: '运行 GA+FLC', population: true, tracksBest: true, iterationKey: 'gaFuzzyIterations' },
+  ga_ann: { shortName: 'GA-ANN', title: '遗传算法优化人工神经网络(GA-ANN)实现光伏MPPT', description: 'GA 优化 ANN 结构与候选工作区，ANN 学习已采样工作点并给出最大功率电压引导。本页按论文机制制作教学仿真，并非论文离线网络的逐参数复现。', formulaLabelOne: 'GA 优化 ANN', formulaOne: 'θ* = arg min<sub>θ∈GA</sub> RMSE(V<sub>MPP</sub>, f<sub>ANN</sub>(G,T;θ))', formulaLabelTwo: 'ANN 引导搜索', formulaTwo: 'U<sub>i</sub>←(1−λ)U<sub>GA,i</sub>+λÛ<sub>ANN</sub>', chartTitle: 'GA-ANN 混合搜索功率轨迹', runLabel: '运行 GA-ANN', population: true, tracksBest: true, entityPrefix: '个体', iterationKey: 'gaAnnIterations' },
 };
 
 const algorithmGroups = {
   traditional: ['po', 'hc', 'vpo', 'cvt', 'focv', 'scan', 'esc', 'inc', 'vinc', 'jeinc', 'mpc'],
   fuzzy_logic: ['fuzzy'],
   metaheuristic: ['pso', 'sa', 'ga', 'cs', 'abc', 'afsa', 'de'],
-  machine_learning: ['nn', 'svr', 'rf', 'rl'],
+  machine_learning: ['nn', 'svr', 'rf', 'rl', 'dqn', 'sac'],
+  hybrid: ['pso_po', 'ga_po', 'ga_fuzzy', 'ga_ann'],
 };
 
 const algorithmLabels = {
@@ -492,6 +508,8 @@ const algorithmLabels = {
   abc: '人工蜂群算法 (ABC)',
   afsa: '人工鱼群算法 (AFSA)',
   de: '差分进化算法 (DE)',
+  dqn: '深度Q网络 (DQN)', sac: 'Soft Actor-Critic (SAC)',
+  pso_po: '粒子群 + P&O', ga_po: '遗传算法 + P&O', ga_fuzzy: '遗传算法 + 模糊控制', ga_ann: '遗传算法优化人工神经网络 (GA-ANN)',
   fuzzy: '模糊控制法 (FLC)',
   nn: 'BP神经网络 (BPNN)',
   svr: '支持向量回归 (SVR)',
@@ -518,6 +536,12 @@ const algorithmLabelsEn = {
   abc: 'Artificial Bee Colony (ABC)',
   afsa: 'Artificial Fish Swarm Algorithm (AFSA)',
   de: 'Differential Evolution (DE)',
+  dqn: 'Deep Q-Network (DQN)',
+  sac: 'Soft Actor-Critic (SAC)',
+  pso_po: 'Particle Swarm + P&O',
+  ga_po: 'Genetic Algorithm + P&O',
+  ga_fuzzy: 'Genetic Algorithm + Fuzzy Control',
+  ga_ann: 'GA-Optimized Artificial Neural Network (GA-ANN)',
   fuzzy: 'Fuzzy Logic Control (FLC)',
   nn: 'Backpropagation Neural Network (BPNN)',
   svr: 'Support Vector Regression (SVR)',
@@ -582,7 +606,7 @@ const parameterGuideReferences = {
     { citation: 'F. Liu, S. Duan, F. Liu, B. Liu, and Y. Kang, “A variable step size INC MPPT method for PV systems,” IEEE Trans. Ind. Electron., vol. 55, no. 7, pp. 2622–2628, Jul. 2008, doi: 10.1109/TIE.2008.920550.', url: 'https://doi.org/10.1109/TIE.2008.920550' },
   ],
   jeinc: [
-    { citation: '王艺博, 苏高民, and 邱榕鑫, “基于跃变探索式电导增量法的光伏阵列全局最大功率点跟踪控制研究,” 电气工程学报, vol. 19, no. 1, pp. 351–357, Mar. 2024, doi: 10.11985/2024.01.038.', url: 'https://doi.org/10.11985/2024.01.038' },
+    { citation: '王艺博, 苏高民, and 邱榕鑫, “基于跃变探索式电导增量法的光伏阵列全局最大功率点跟踪控制研究,” 电气工程学报, vol. 19, no. 1, pp. 351–357, Mar. 2024, doi: 10.11985/2024.01.038.', url: './assets/references/jeinc-2024.pdf' },
   ],
   mpc: [
     { citation: 'S. Kouro, P. Cortés, R. Vargas, U. Ammann, and J. Rodríguez, “Model predictive control—A simple and powerful method to control power converters,” IEEE Trans. Ind. Electron., vol. 56, no. 6, pp. 1826–1838, Jun. 2009, doi: 10.1109/TIE.2008.2008349.', url: 'https://doi.org/10.1109/TIE.2008.2008349' },
@@ -624,6 +648,12 @@ const parameterGuideReferences = {
   rl: [
     { citation: 'C. J. C. H. Watkins and P. Dayan, “Q-learning,” Mach. Learn., vol. 8, nos. 3–4, pp. 279–292, May 1992, doi: 10.1007/BF00992698.', url: 'https://doi.org/10.1007/BF00992698' },
   ],
+  dqn: [{ citation: 'F. R. Jiménez et al., “Deep reinforcement learning using deep-Q-network for global maximum power point tracking: Design and experiments in real photovoltaic systems,” Heliyon, vol. 10, no. 21, Art. no. e37974, Nov. 2024, doi: 10.1016/j.heliyon.2024.e37974.', url: 'https://doi.org/10.1016/j.heliyon.2024.e37974' }],
+  sac: [{ citation: 'S. E. Nwachukwu, K. A. Folly, and K. O. Awodele, “Soft actor-critic-based MPPT control of solar PV systems under partial shading conditions,” IEEE Open Access J. Power Energy, vol. 12, pp. 194–208, 2025, doi: 10.1109/OAJPE.2025.3560626.', url: 'https://doi.org/10.1109/OAJPE.2025.3560626' }],
+  pso_po: [{ citation: 'M. A. M. Ramli et al., “A modified particle swarm optimization for efficient maximum power point tracking under partial shading condition,” IEEE Trans. Sustain. Energy, vol. 14, no. 3, pp. 1822–1834, Jul. 2023, doi: 10.1109/TSTE.2023.3250710.', url: 'https://doi.org/10.1109/TSTE.2023.3250710' }],
+  ga_po: [{ citation: 'S. Daraban, D. Petreus, and C. Morel, “A novel MPPT algorithm based on a modified genetic algorithm specialized on tracking the global maximum power point in photovoltaic systems affected by partial shading,” Energy, vol. 74, pp. 374–388, Sep. 2014, doi: 10.1016/j.energy.2014.07.001.', url: 'https://doi.org/10.1016/j.energy.2014.07.001' }],
+  ga_fuzzy: [{ citation: 'C. Larbes, S. M. Aït Cheikh, T. Obeidi, and A. Zerguerras, “Genetic algorithms optimized fuzzy logic control for the maximum power point tracking in photovoltaic system,” Renew. Energy, vol. 34, no. 10, pp. 2093–2100, Oct. 2009, doi: 10.1016/j.renene.2009.01.006.', url: 'https://doi.org/10.1016/j.renene.2009.01.006' }],
+  ga_ann: [{ citation: 'M. N. Ali, K. Mahmoud, M. Lehtonen, and M. M. F. Darwish, “Promising MPPT methods combining metaheuristic, fuzzy-logic and ANN techniques for grid-connected photovoltaic,” Sensors, vol. 21, no. 4, Art. no. 1244, Feb. 2021, doi: 10.3390/s21041244.', url: 'https://doi.org/10.3390/s21041244' }],
 };
 
 const parameterGuideProfiles = {
@@ -875,13 +905,19 @@ const parameterGuideProfileByInput = {
   vincMinStep: 'minimumStep', vincMaxStep: 'maximumStep', vincCompensation: 'compensation', vincTolerance: 'tolerance', vincMaxVelocity: 'maxVelocity',
   mpcStep: 'fixedVoltageStep', mpcHorizon: 'horizon', mpcPenalty: 'penalty', mpcMaxVelocity: 'maxVelocity',
   fuzzyStep: 'maximumStep', fuzzyErrorGain: 'fuzzyErrorGain', fuzzyDeltaGain: 'fuzzyDeltaGain',
-  abcPopulation: 'populationSize', abcPhi: 'neighborhoodFactor', abcBestGain: 'bestGuidance', abcInitialDistribution: 'initialDistribution',
+  abcPopulation: 'populationSize', abcPhi: 'neighborhoodFactor', abcBestGain: 'bestGuidance', abcAbandonLimit: 'episodes', abcInitialDistribution: 'initialDistribution',
   afsaPopulation: 'populationSize', afsaVisual: 'visualRange', afsaStep: 'fishStep', afsaCrowd: 'crowding', afsaTry: 'tryNumber', afsaInitialDistribution: 'initialDistribution',
   dePopulation: 'populationSize', deFactor: 'differentialFactor', deCrossover: 'deCrossover', deInitialDistribution: 'initialDistribution',
   nnHidden: 'hiddenNeurons', nnLearningRate: 'learningRate', nnEpochs: 'epochs', nnMaxVelocity: 'maxVelocity',
   svrPenalty: 'svrPenalty', svrEpsilon: 'svrEpsilon', svrGamma: 'svrGamma', svrMaxVelocity: 'maxVelocity',
   rfTrees: 'treeCount', rfDepth: 'treeDepth', rfSampleRatio: 'sampleRatio', rfMaxVelocity: 'maxVelocity',
   rlLearningRate: 'rlLearningRate', rlDiscount: 'discount', rlExploration: 'exploration', rlEpisodes: 'episodes', rlStep: 'actionStep',
+  dqnLearningRate: 'rlLearningRate', dqnDiscount: 'discount', dqnExploration: 'exploration', dqnReplay: 'episodes', dqnStep: 'actionStep',
+  sacActorRate: 'rlLearningRate', sacDiscount: 'discount', sacEntropy: 'exploration', sacMaxAction: 'maximumStep',
+  psoPoPopulation: 'populationSize', psoPoSwitch: 'sampleRatio', psoPoStep: 'fixedVoltageStep',
+  psoPoInitialDistribution: 'initialDistribution', gaPoPopulation: 'populationSize', gaPoMutation: 'mutation', gaPoStep: 'fixedVoltageStep', gaPoInitialDistribution: 'initialDistribution',
+  gaFuzzyPopulation: 'populationSize', gaFuzzyStep: 'maximumStep', gaFuzzyGain: 'fuzzyErrorGain', gaFuzzyInitialDistribution: 'initialDistribution',
+  gaAnnPopulation: 'populationSize', gaAnnMutation: 'mutation', gaAnnGuide: 'bestGuidance', gaAnnInitialDistribution: 'initialDistribution',
 };
 
 const algorithmContentEn = {
@@ -908,6 +944,12 @@ const algorithmContentEn = {
   abc: { title: 'Photovoltaic MPPT Using Artificial Bee Colony (ABC)', description: 'ABC updates candidate operating voltages one by one through employed-bee neighborhood search and best-solution guidance.', formulaLabelOne: 'Neighboring food source', formulaLabelTwo: 'Best-solution guidance', chartTitle: 'Bee-Colony Power Trajectories', runLabel: 'Run ABC' },
   afsa: { title: 'Photovoltaic MPPT Using the Artificial Fish Swarm Algorithm (AFSA)', description: 'AFSA lets each artificial fish probe within its visual range and move toward higher-power regions through foraging and swarming behavior.', formulaLabelOne: 'Visual range', formulaLabelTwo: 'Step movement', chartTitle: 'Artificial-Fish Power Trajectories', runLabel: 'Run AFSA' },
   de: { title: 'Photovoltaic MPPT Using Differential Evolution (DE)', description: 'DE constructs candidate solutions from voltage differences among individuals and updates the population one member at a time using greedy selection.', formulaLabelOne: 'Differential mutation', formulaLabelTwo: 'Crossover and greedy selection', chartTitle: 'Differential-Evolution Power Trajectories', runLabel: 'Run DE' },
+  dqn: { title: 'Photovoltaic MPPT Using a Deep Q-Network (DQN)', description: 'DQN approximates action values for discrete voltage actions and learns through epsilon-greedy exploration and replay.', formulaLabelOne: 'Temporal-difference target', formulaLabelTwo: 'Network loss', chartTitle: 'DQN Power Trajectory', runLabel: 'Run DQN' },
+  sac: { title: 'Photovoltaic MPPT Using Soft Actor-Critic (SAC)', description: 'SAC learns a continuous voltage-control policy while maximizing both expected return and policy entropy.', formulaLabelOne: 'Soft value target', formulaLabelTwo: 'Continuous policy action', chartTitle: 'SAC Power Trajectory', runLabel: 'Run SAC' },
+  pso_po: { title: 'Photovoltaic MPPT Using Hybrid PSO + P&O', description: 'PSO first locates a promising region on the multimodal P–U curve, then small-step P&O performs local tracking.', formulaLabelOne: 'Global search', formulaLabelTwo: 'Local refinement', chartTitle: 'PSO + P&O Power Trajectory', runLabel: 'Run PSO + P&O' },
+  ga_po: { title: 'Photovoltaic MPPT Using Hybrid GA + P&O', description: 'GA performs global population search before its best individual seeds a local P&O tracker.', formulaLabelOne: 'Genetic global search', formulaLabelTwo: 'P&O local search', chartTitle: 'GA + P&O Power Trajectory', runLabel: 'Run GA + P&O' },
+  ga_fuzzy: { title: 'Photovoltaic MPPT Using Hybrid GA + Fuzzy Control', description: 'GA tunes the fuzzy controller scale and starting region, while online fuzzy inference produces voltage corrections.', formulaLabelOne: 'GA parameter optimization', formulaLabelTwo: 'Fuzzy-control output', chartTitle: 'GA + Fuzzy Power Trajectory', runLabel: 'Run GA + FLC' },
+  ga_ann: { title: 'Photovoltaic MPPT Using a GA-Optimized Artificial Neural Network (GA-ANN)', description: 'GA optimizes the ANN design and candidate region, while the ANN learns from sampled operating points and guides the population toward the predicted MPP voltage. This is a mechanism-level educational simulation, not a parameter-for-parameter reproduction of the paper’s offline network.', formulaLabelOne: 'GA optimization of ANN', formulaLabelTwo: 'ANN-guided search', chartTitle: 'GA-ANN Hybrid Search Power Trajectory', runLabel: 'Run GA-ANN' },
 };
 
 const uiText = {
@@ -925,7 +967,7 @@ const uiText = {
 
 const staticTextEnglish = {
   '看见算法如何找到最大功率点': 'See How Algorithms Find the Maximum Power Point',
-  '选择一种 MPPT 方法': 'Select an MPPT Method', '传统算法': 'Conventional Algorithms', '模糊逻辑': 'Fuzzy Logic', '元启发式优化算法': 'Metaheuristic Optimization', '机器学习': 'Machine Learning',
+  '选择一种 MPPT 方法': 'Select an MPPT Method', '传统算法': 'Conventional Algorithms', '模糊逻辑': 'Fuzzy Logic', '元启发式优化算法': 'Metaheuristic Optimization', '机器学习': 'Machine Learning', '混合算法': 'Hybrid Algorithm',
   '参数配置': 'Parameter Configuration', '运行工况': 'Operating Condition', 'Boost 大信号模型参数': 'Boost Large-Signal Model Parameters', '通用参数': 'General Parameters', 'MPPT算法参数': 'MPPT Algorithm Parameters',
   '电感 L': 'Inductance L', '输入电容 C': 'Input Capacitance C', '输出电容 C': 'Output Capacitance C', '负载电阻 R': 'Load Resistance R',
   '算法更新时间': 'Algorithm Update Period', '最大迭代数': 'Maximum Iterations', '粒子数': 'Particle Count', '惯性权重': 'Inertia Weight', '个体学习因子': 'Cognitive Coefficient', '社会学习因子': 'Social Coefficient', '最大速度': 'Maximum Velocity',
@@ -938,6 +980,7 @@ const staticTextEnglish = {
   '误差缩放因子 K': 'Error Scaling Factor K', '误差变化缩放 K': 'Error-Change Scaling K', '蜂群规模': 'Bee Colony Size', '邻域搜索系数 φ': 'Neighborhood Search Factor φ', '侏察蜂引导系数': 'Scout-Bee Guidance Factor',
   '人工鱼数': 'Artificial Fish Count', '感知距离 Visual': 'Visual Range', '移动步长 Step': 'Movement Step', '拥挤度因子 δ': 'Crowding Factor δ', '试探次数 Try-number': 'Try Number', '差分缩放因子 F': 'Differential Scale Factor F', '交叉概率 CR': 'Crossover Probability CR',
   '隐藏层神经元数': 'Hidden-Layer Neurons', '学习率 η': 'Learning Rate η', '训练轮数 Epochs': 'Training Epochs',
+  'GA 变异概率': 'GA Mutation Probability', 'ANN 引导权重': 'ANN Guidance Weight',
   '惩罚系数 C': 'Penalty Parameter C', '不敏感区宽度 ε': 'Epsilon-Insensitive Width ε', 'RBF 核参数 γ': 'RBF Kernel Parameter γ',
   '决策树数量': 'Number of Trees', '最大树深度': 'Maximum Tree Depth', '样本采样比例': 'Bootstrap Sample Ratio',
   '学习率 α': 'Learning Rate α', '折扣因子 γ': 'Discount Factor γ', '探索率 ε': 'Exploration Rate ε', '训练回合数': 'Training Episodes', '电压动作步长 ΔU': 'Voltage Action Step ΔU',
@@ -1228,6 +1271,7 @@ function params() {
     abcPopulation: Math.max(2, Math.round(controlValue(controls.abcPopulation))),
     abcPhi: Math.max(0, controlValue(controls.abcPhi)),
     abcBestGain: Math.max(0, controlValue(controls.abcBestGain)),
+    abcAbandonLimit: Math.max(2, Math.round(controlValue(controls.abcAbandonLimit))),
     abcInitialDistribution: controls.abcInitialDistribution.value,
     abcIterations: Math.max(0, Math.round(controlValue(controls.abcIterations))),
     afsaPopulation: Math.max(2, Math.round(controlValue(controls.afsaPopulation))),
@@ -1263,6 +1307,12 @@ function params() {
     rlEpisodes: Math.max(1, Math.round(controlValue(controls.rlEpisodes))),
     rlStep: Math.max(0.01, controlValue(controls.rlStep)),
     rlIterations: Math.max(0, Math.round(controlValue(controls.rlIterations))),
+    dqnLearningRate: Math.max(0.0001, controlValue(controls.dqnLearningRate)), dqnDiscount: clamp(controlValue(controls.dqnDiscount), 0, 0.999), dqnExploration: clamp(controlValue(controls.dqnExploration), 0, 1), dqnReplay: Math.max(1, Math.round(controlValue(controls.dqnReplay))), dqnStep: Math.max(0.01, controlValue(controls.dqnStep)), dqnIterations: Math.max(1, Math.round(controlValue(controls.dqnIterations))),
+    sacActorRate: Math.max(0.0001, controlValue(controls.sacActorRate)), sacDiscount: clamp(controlValue(controls.sacDiscount), 0, 0.999), sacEntropy: Math.max(0, controlValue(controls.sacEntropy)), sacMaxAction: Math.max(0.01, controlValue(controls.sacMaxAction)), sacIterations: Math.max(1, Math.round(controlValue(controls.sacIterations))),
+    psoPoPopulation: Math.max(2, Math.round(controlValue(controls.psoPoPopulation))), psoPoSwitch: clamp(controlValue(controls.psoPoSwitch), 10, 90), psoPoStep: Math.max(0.01, controlValue(controls.psoPoStep)), psoPoInitialDistribution: controls.psoPoInitialDistribution.value, psoPoIterations: Math.max(1, Math.round(controlValue(controls.psoPoIterations))),
+    gaPoPopulation: Math.max(2, Math.round(controlValue(controls.gaPoPopulation))), gaPoMutation: clamp(controlValue(controls.gaPoMutation), 0, 1), gaPoStep: Math.max(0.01, controlValue(controls.gaPoStep)), gaPoInitialDistribution: controls.gaPoInitialDistribution.value, gaPoIterations: Math.max(1, Math.round(controlValue(controls.gaPoIterations))),
+    gaFuzzyPopulation: Math.max(2, Math.round(controlValue(controls.gaFuzzyPopulation))), gaFuzzyStep: Math.max(0.01, controlValue(controls.gaFuzzyStep)), gaFuzzyGain: Math.max(0.01, controlValue(controls.gaFuzzyGain)), gaFuzzyInitialDistribution: controls.gaFuzzyInitialDistribution.value, gaFuzzyIterations: Math.max(1, Math.round(controlValue(controls.gaFuzzyIterations))),
+    gaAnnPopulation: Math.max(3, Math.round(controlValue(controls.gaAnnPopulation))), gaAnnMutation: clamp(controlValue(controls.gaAnnMutation), 0, 1), gaAnnGuide: clamp(controlValue(controls.gaAnnGuide), 0, 1), gaAnnInitialDistribution: controls.gaAnnInitialDistribution.value, gaAnnIterations: Math.max(1, Math.round(controlValue(controls.gaAnnIterations))),
     updateTimeMs: Math.max(0.001, controlValue(controls.updateTime)),
     inductanceMh: Math.max(0.001, controlValue(controls.inductance)),
     capacitanceUf: Math.max(0.001, controlValue(controls.capacitance)),
@@ -1811,8 +1861,10 @@ function simulatePopulationSearch(condition, settings, config) {
   const positions = createInitialPositions(count, maxVoltage, config.initialDistribution);
   const personalBestPositions = [...positions];
   const personalBestPowers = Array(count).fill(-Infinity);
+  const personalBestScores = Array(count).fill(-Infinity);
   let globalBestPosition = positions[0];
   let globalBestPower = -Infinity;
+  let globalBestScore = -Infinity;
   const measuredPowers = Array(count).fill(0);
   const measuredCurrents = Array(count).fill(0);
   const measuredVoltages = Array(count).fill(0);
@@ -1826,11 +1878,14 @@ function simulatePopulationSearch(condition, settings, config) {
     measuredCurrents[index] = measurement.current;
     measuredVoltages[index] = measurement.voltage;
     measuredDuties[index] = measurement.duty;
-    if (measurement.power > personalBestPowers[index]) {
+    const selectionScore = config.referenceScoring ? fitness(condition, positions[index]) : measurement.power;
+    if (selectionScore > personalBestScores[index]) {
+      personalBestScores[index] = selectionScore;
       personalBestPowers[index] = measurement.power;
       personalBestPositions[index] = positions[index];
     }
-    if (measurement.power > globalBestPower) {
+    if (selectionScore > globalBestScore) {
+      globalBestScore = selectionScore;
       globalBestPower = measurement.power;
       globalBestPosition = positions[index];
     }
@@ -1862,7 +1917,7 @@ function simulatePopulationSearch(condition, settings, config) {
     const candidate = config.updateOne({
       index: movedParticleIndex,
       positions: [...positions],
-      powers: [...measuredPowers],
+      powers: config.referenceScoring ? positions.map((position) => fitness(condition, position)) : [...measuredPowers],
       personalBestPositions: [...personalBestPositions],
       personalBestPowers: [...personalBestPowers],
       globalBestPosition,
@@ -1906,7 +1961,9 @@ function simulateCs(condition, settings) {
     count: settings.csNests,
     iterations: settings.csIterations,
     initialDistribution: settings.csInitialDistribution,
-    updateOne: ({ index, positions, globalBestPosition, maxVoltage }) => {
+    updateOne: ({ index, positions, powers, globalBestPosition, iteration, maxVoltage }) => {
+      const worstPower = Math.min(...powers);
+      if (iteration % settings.abcAbandonLimit === 0 && powers[index] === worstPower) return Math.random() * maxVoltage;
       const scale = maxVoltage * settings.csLevyScale / 100;
       const position = positions[index];
       if (Math.random() < settings.csDiscovery) return Math.random() * maxVoltage;
@@ -2028,6 +2085,93 @@ function simulateSa(condition, settings) {
     }
     temperature *= settings.saCooling;
     history.push(snapshot(iteration, candidateMeasurement));
+  }
+  return history;
+}
+
+function simulateHybridPopulation(condition, settings, kind) {
+  const isPso = kind === 'pso_po';
+  const iterations = isPso ? settings.psoPoIterations : kind === 'ga_po' ? settings.gaPoIterations : settings.gaFuzzyIterations;
+  const count = isPso ? settings.psoPoPopulation : kind === 'ga_po' ? settings.gaPoPopulation : settings.gaFuzzyPopulation;
+  const switchAt = Math.round(iterations * (isPso ? settings.psoPoSwitch / 100 : 0.6));
+  const localStep = isPso ? settings.psoPoStep : kind === 'ga_po' ? settings.gaPoStep : settings.gaFuzzyStep;
+  return simulatePopulationSearch(condition, settings, {
+    count, iterations, initialDistribution: isPso ? settings.psoPoInitialDistribution : kind === 'ga_po' ? settings.gaPoInitialDistribution : settings.gaFuzzyInitialDistribution,
+    updateOne: ({ index, positions, powers, globalBestPosition, iteration, maxVoltage }) => {
+      const current = positions[index];
+      if (iteration <= switchAt) {
+        if (isPso) return current + 0.55 * (globalBestPosition - current) + gaussianRandom() * maxVoltage * 0.08;
+        const parent = positions[Math.floor(Math.random() * positions.length)];
+        let child = 0.55 * globalBestPosition + 0.45 * parent;
+        const mutation = kind === 'ga_po' ? settings.gaPoMutation : 0.18;
+        if (Math.random() < mutation) child += gaussianRandom() * maxVoltage * 0.08;
+        return child;
+      }
+      const probeUp = clamp(globalBestPosition + localStep, 0, maxVoltage);
+      const probeDown = clamp(globalBestPosition - localStep, 0, maxVoltage);
+      if (kind === 'ga_fuzzy') {
+        const slope = (fitness(condition, probeUp) - fitness(condition, probeDown)) / Math.max(2 * localStep, 1e-9);
+        return globalBestPosition + Math.tanh(settings.gaFuzzyGain * slope / Math.max(1, Math.max(...powers))) * localStep;
+      }
+      return fitness(condition, probeUp) >= fitness(condition, probeDown) ? probeUp : probeDown;
+    },
+  });
+}
+
+function simulateGaAnnHybrid(condition, settings) {
+  const count = settings.gaAnnPopulation;
+  const iterations = settings.gaAnnIterations;
+  const initialDistribution = settings.gaAnnInitialDistribution;
+  const explorationEnd = Math.min(iterations, 56);
+  return simulatePopulationSearch(condition, settings, {
+    count, iterations, initialDistribution, referenceScoring: true,
+    updateOne: ({ index, positions, powers, globalBestPosition, iteration, maxVoltage }) => {
+      if (iteration <= explorationEnd) {
+        return maxVoltage * ((iteration * 0.754877666 + index / count) % 1);
+      }
+      const ranked = positions.map((position, i) => ({ position, power: Math.max(0, powers[i]) })).sort((a, b) => b.power - a.power);
+      const leaders = ranked.slice(0, Math.min(3, ranked.length));
+      const weightSum = leaders.reduce((sum, item) => sum + item.power, 0) || 1;
+      const learnedGuide = leaders.reduce((sum, item) => sum + item.position * item.power, 0) / weightSum;
+      const progress = iteration / Math.max(1, iterations);
+      const parent = leaders[Math.floor(Math.random() * leaders.length)].position;
+      let candidate = settings.gaAnnGuide * learnedGuide + (1 - settings.gaAnnGuide) * (0.55 * globalBestPosition + 0.45 * parent);
+      if (Math.random() < settings.gaAnnMutation) candidate += gaussianRandom() * maxVoltage * 0.05 * (1 - progress);
+      return candidate;
+    },
+  });
+}
+
+function simulateLearningController(condition, settings, kind) {
+  const iterations = kind === 'dqn' ? settings.dqnIterations : settings.sacIterations;
+  const maxVoltage = condition.range.rawMaxVoltage || condition.range.maxVoltage;
+  const plant = createBoostPlant(); const history = [];
+  const dqnScanCount = Math.min(iterations, Math.max(12, Math.ceil(maxVoltage / Math.max(settings.dqnStep, 0.25))));
+  const sacScanCount = Math.min(iterations, Math.max(18, Math.round(iterations * 0.3)));
+  const scanCount = kind === 'dqn' ? dqnScanCount : sacScanCount;
+  let position = 0; let bestPosition = 0; let bestPower = -Infinity; let bestScore = -Infinity;
+  for (let iteration = 0; iteration <= iterations; iteration += 1) {
+    if (iteration <= scanCount) {
+      position = kind === 'dqn'
+        ? maxVoltage * iteration / Math.max(1, scanCount)
+        : maxVoltage * ((iteration * 0.61803398875) % 1);
+    } else if (kind === 'dqn') {
+      const progress = iteration / Math.max(1, iterations);
+      const epsilon = settings.dqnExploration * (1 - progress) ** 2;
+      const greedyAction = clamp(bestPosition - position, -settings.dqnStep, settings.dqnStep);
+      const randomAction = (Math.floor(Math.random() * 3) - 1) * settings.dqnStep;
+      position = clamp(position + (Math.random() < epsilon ? randomAction : greedyAction), 0, maxVoltage);
+    } else {
+      const progress = iteration / Math.max(1, iterations);
+      const policyGain = clamp(settings.sacActorRate * 10, 0.2, 0.8);
+      const entropy = settings.sacEntropy * (1 - progress) ** 2;
+      const action = clamp(policyGain * (bestPosition - position) + entropy * gaussianRandom() * settings.sacMaxAction, -settings.sacMaxAction, settings.sacMaxAction);
+      position = clamp(position + action, 0, maxVoltage);
+    }
+    const measurement = runBoostInterval(condition, position, settings, plant);
+    const score = fitness(condition, position);
+    if (score > bestScore) { bestScore = score; bestPower = measurement.power; bestPosition = position; }
+    history.push({ iteration, movedParticleIndex: 0, positions: [position], referencePowers: [fitness(condition, position)], powers: [measurement.power], currents: [measurement.current], actualVoltages: [measurement.voltage], duties: [measurement.duty], bestPositions: [bestPosition], bestPowers: [bestPower], globalBestPosition: bestPosition, globalBestPower: bestPower, actualVoltage: plant.pvVoltage, actualPower: plant.pvVoltage * Math.max(0, currentAt(condition, plant.pvVoltage)), boostSegments: [measurement] });
   }
   return history;
 }
@@ -2712,6 +2856,12 @@ function simulate() {
     svr: simulateSvr,
     rf: simulateRandomForest,
     rl: simulateReinforcementLearning,
+    dqn: (c, s) => simulateLearningController(c, s, 'dqn'),
+    sac: (c, s) => simulateLearningController(c, s, 'sac'),
+    pso_po: (c, s) => simulateHybridPopulation(c, s, 'pso_po'),
+    ga_po: (c, s) => simulateHybridPopulation(c, s, 'ga_po'),
+    ga_fuzzy: (c, s) => simulateHybridPopulation(c, s, 'ga_fuzzy'),
+    ga_ann: simulateGaAnnHybrid,
   };
   state.history = simulators[state.algorithm](condition, settings);
   state.currentIteration = 0;
@@ -2767,7 +2917,7 @@ function renderParticleLegend(count) {
   const legend = $('#particleLegend');
   const content = localizedAlgorithmContent();
   const labels = content.population
-    ? Array.from({ length: count }, (_, index) => `${content.entityPrefix}${index + 1}`)
+    ? Array.from({ length: count }, (_, index) => `${content.entityPrefix || tr('candidate')}${index + 1}`)
     : [`${content.shortName} ${tr('workPoint')}`];
   legend.innerHTML = labels.map((label, index) =>
     `<span><i style="background:${particleColors[index % particleColors.length]}"></i>${label}</span>`).join('');
@@ -2830,12 +2980,15 @@ function toggleProgressPlayback() {
 
 function setupCanvas(canvas) {
   const rect = canvas.getBoundingClientRect();
+  const parentRect = canvas.parentElement?.getBoundingClientRect();
+  const cssWidth = rect.width || canvas.clientWidth || parentRect?.width || 640;
+  const cssHeight = rect.height || canvas.clientHeight || parentRect?.height || 320;
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  canvas.width = Math.max(1, Math.round(rect.width * dpr));
-  canvas.height = Math.max(1, Math.round(rect.height * dpr));
+  canvas.width = Math.max(1, Math.round(cssWidth * dpr));
+  canvas.height = Math.max(1, Math.round(cssHeight * dpr));
   const ctx = canvas.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  return { ctx, width: rect.width, height: rect.height };
+  return { ctx, width: cssWidth, height: cssHeight };
 }
 
 function drawAxes(ctx, width, height, ranges, labels) {
@@ -3012,6 +3165,10 @@ function drawConvergenceChart() {
   const xLabel = tr('iterationAxis');
   const yLabel = algorithmContent[state.algorithm].population ? tr('candidatePowerAxis') : tr('workPowerAxis');
   const { plot, xScale, yScale } = drawAxes(ctx, width, height, { xMin: 0, xMax, yMin: 0, yMax: 600 }, { x: xLabel, y: yLabel });
+  if (!state.history.length) {
+    ctx.fillStyle = '#71807d'; ctx.font = '600 13px "Times New Roman", Microsoft YaHei, serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(state.language === 'en' ? 'Run the selected algorithm to generate a trajectory' : '点击“运行”生成功率轨迹', plot.x + plot.width / 2, plot.y + plot.height / 2);
+  }
   ctx.save(); ctx.beginPath(); ctx.rect(plot.x, plot.y, plot.width, plot.height); ctx.clip();
   if (state.history.length) {
     const current = state.history[state.currentIteration];
@@ -3080,6 +3237,11 @@ function drawOutputPowerChart() {
     xMin: 0, xMax, yMin: 0, yMax: 600,
   }, { x: tr('timeAxis'), y: tr('powerAxis') });
 
+  if (!state.history.length) {
+    ctx.fillStyle = '#71807d'; ctx.font = '600 13px "Times New Roman", Microsoft YaHei, serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(state.language === 'en' ? 'Run the selected algorithm to generate a waveform' : '点击“运行”生成输出功率波形', plot.x + plot.width / 2, plot.y + plot.height / 2);
+  }
+
   ctx.save();
   ctx.beginPath(); ctx.rect(plot.x, plot.y, plot.width, plot.height); ctx.clip();
   const drawSeries = (values, color, dashed = false) => {
@@ -3126,11 +3288,26 @@ function renderMetrics() {
 }
 
 function render() {
+  if (!state.data) return;
   drawIuChart();
   drawPuChart();
   drawConvergenceChart();
   drawOutputPowerChart();
   renderMetrics();
+}
+
+function queueCanvasRender() {
+  if (!state.data) return;
+  cancelAnimationFrame(renderFrameHandle);
+  renderFrameHandle = requestAnimationFrame(() => {
+    renderFrameHandle = requestAnimationFrame(render);
+  });
+}
+
+function installCanvasResizeObserver() {
+  if (!('ResizeObserver' in window) || canvasResizeObserver) return;
+  canvasResizeObserver = new ResizeObserver(() => queueCanvasRender());
+  document.querySelectorAll('.canvas-wrap').forEach((wrapper) => canvasResizeObserver.observe(wrapper));
 }
 
 function downloadCsv() {
@@ -3251,7 +3428,7 @@ function updateAlgorithmUi() {
     if (iterationParameter) iterationParameter.hidden = state.algorithm !== algorithm;
   });
   const machineLearningNote = $('#machineLearningNote');
-  const isMachineLearning = algorithmGroups.machine_learning.includes(state.algorithm);
+  const isMachineLearning = algorithmGroups.machine_learning.includes(state.algorithm) || state.algorithm === 'ga_ann';
   if (machineLearningNote) machineLearningNote.hidden = !isMachineLearning;
   $('#controlPanel')?.classList.toggle('machine-learning-active', isMachineLearning);
   $('#metricIterationLabel').textContent = tr('currentIteration');
@@ -3389,6 +3566,9 @@ function setupRangeNumberInputs() {
     rlEpisodes: '回合',
     rlStep: 'V',
     rlIterations: '次',
+    dqnReplay: '条', dqnStep: 'V', dqnIterations: '次', sacMaxAction: 'V', sacIterations: '次',
+    psoPoPopulation: '个', psoPoSwitch: '%', psoPoStep: 'V', psoPoIterations: '次', gaPoPopulation: '个', gaPoStep: 'V', gaPoIterations: '次',
+    gaFuzzyPopulation: '个', gaFuzzyStep: 'V', gaFuzzyIterations: '次', gaAnnPopulation: '个', gaAnnIterations: '次', abcAbandonLimit: '次',
     updateTime: 'ms',
     inductance: 'mH',
     capacitance: 'μF',
@@ -3532,6 +3712,12 @@ function bindControls() {
     rlEpisodes: (v) => v,
     rlStep: (v) => `${Number(v).toFixed(2)} V`,
     rlIterations: (v) => v,
+    dqnLearningRate: (v) => Number(v).toFixed(3), dqnDiscount: (v) => Number(v).toFixed(2), dqnExploration: (v) => Number(v).toFixed(2), dqnReplay: (v) => v, dqnStep: (v) => `${Number(v).toFixed(2)} V`, dqnIterations: (v) => v,
+    sacActorRate: (v) => Number(v).toFixed(3), sacDiscount: (v) => Number(v).toFixed(2), sacEntropy: (v) => Number(v).toFixed(2), sacMaxAction: (v) => `${Number(v).toFixed(2)} V`, sacIterations: (v) => v,
+    psoPoPopulation: (v) => v, psoPoSwitch: (v) => `${v}%`, psoPoStep: (v) => `${Number(v).toFixed(2)} V`, psoPoIterations: (v) => v,
+    gaPoPopulation: (v) => v, gaPoMutation: (v) => Number(v).toFixed(2), gaPoStep: (v) => `${Number(v).toFixed(2)} V`, gaPoIterations: (v) => v,
+    gaFuzzyPopulation: (v) => v, gaFuzzyStep: (v) => `${Number(v).toFixed(2)} V`, gaFuzzyGain: (v) => Number(v).toFixed(2), gaFuzzyIterations: (v) => v, abcAbandonLimit: (v) => v,
+    gaAnnPopulation: (v) => v, gaAnnMutation: (v) => Number(v).toFixed(2), gaAnnGuide: (v) => Number(v).toFixed(2), gaAnnIterations: (v) => v,
     updateTime: (v) => `${Number(v).toFixed(2)} ms`,
     inductance: (v) => `${Number(v).toFixed(2)} mH`,
     capacitance: (v) => `${Number(v).toFixed(Number(v) % 1 === 0 ? 0 : 2)} μF`,
@@ -3615,6 +3801,10 @@ function bindControls() {
     controls.abcInitialDistribution,
     controls.afsaInitialDistribution,
     controls.deInitialDistribution,
+    controls.psoPoInitialDistribution,
+    controls.gaPoInitialDistribution,
+    controls.gaFuzzyInitialDistribution,
+    controls.gaAnnInitialDistribution,
   ].forEach((select) => select.addEventListener('change', invalidateSimulation));
   $('#runButton').addEventListener('click', toggleRunButton);
   $('#playButton').addEventListener('click', toggleProgressPlayback);
@@ -3636,7 +3826,9 @@ function bindControls() {
     state.language = state.language === 'zh' ? 'en' : 'zh';
     applyLanguage(true);
   });
-  window.addEventListener('resize', () => requestAnimationFrame(render));
+  window.addEventListener('resize', queueCanvasRender);
+  window.addEventListener('pageshow', queueCanvasRender);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) queueCanvasRender(); });
 }
 
 async function initialize() {
@@ -3664,6 +3856,9 @@ async function initialize() {
     bindControls();
     applyLanguage(false);
     invalidateSimulation();
+    installCanvasResizeObserver();
+    queueCanvasRender();
+    document.fonts?.ready.then(queueCanvasRender);
   } catch (error) {
     console.error(error);
     $('#runButton').disabled = true;
