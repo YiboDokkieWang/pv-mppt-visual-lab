@@ -6,7 +6,7 @@
     <meta name="description" content="Visualize the search and tracking behavior of photovoltaic MPPT algorithms on measured I–U and P–U curves." />
     <title>PV·LAB · Photovoltaic MPPT Algorithm Visualizer</title>
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-    <link rel="stylesheet" href="./styles.css?v=20261012-parameter-references" />
+    <link rel="stylesheet" href="./styles.css?v=20261013-canvas-fix" />
   </head>
   <body>
     <header class="topbar">
@@ -30,6 +30,7 @@
               <option value="fuzzy_logic">模糊逻辑</option>
               <option value="metaheuristic">元启发式优化算法</option>
               <option value="machine_learning">机器学习</option>
+              <option value="hybrid">混合算法</option>
             </select>
             <select id="algorithmSelect" aria-label="具体 MPPT 算法">
               <option value="po" selected>扰动观察法 (P&amp;O)</option>
@@ -182,6 +183,12 @@
                 <span><b>最大迭代数</b><output for="rlIterations" id="rlIterationsValue">150</output></span>
                 <input id="rlIterations" type="range" min="1" max="300" step="1" value="150" />
               </label>
+              <label class="parameter iteration-parameter" id="dqnIterationParameter" hidden><span><b>最大迭代数</b><output for="dqnIterations" id="dqnIterationsValue">150</output></span><input id="dqnIterations" type="range" min="1" max="300" step="1" value="150" /></label>
+              <label class="parameter iteration-parameter" id="sacIterationParameter" hidden><span><b>最大迭代数</b><output for="sacIterations" id="sacIterationsValue">150</output></span><input id="sacIterations" type="range" min="1" max="300" step="1" value="150" /></label>
+              <label class="parameter iteration-parameter" id="pso_poIterationParameter" hidden><span><b>最大迭代数</b><output for="psoPoIterations" id="psoPoIterationsValue">150</output></span><input id="psoPoIterations" type="range" min="1" max="300" step="1" value="150" /></label>
+              <label class="parameter iteration-parameter" id="ga_poIterationParameter" hidden><span><b>最大迭代数</b><output for="gaPoIterations" id="gaPoIterationsValue">150</output></span><input id="gaPoIterations" type="range" min="1" max="300" step="1" value="150" /></label>
+              <label class="parameter iteration-parameter" id="ga_fuzzyIterationParameter" hidden><span><b>最大迭代数</b><output for="gaFuzzyIterations" id="gaFuzzyIterationsValue">150</output></span><input id="gaFuzzyIterations" type="range" min="1" max="300" step="1" value="150" /></label>
+              <label class="parameter iteration-parameter" id="ga_annIterationParameter" hidden><span><b>最大迭代数</b><output for="gaAnnIterations" id="gaAnnIterationsValue">150</output></span><input id="gaAnnIterations" type="range" min="1" max="300" step="1" value="150" /></label>
               </div>
             </section>
 
@@ -193,16 +200,16 @@
                 <input id="particleCount" type="range" min="2" max="10" step="1" value="5" />
               </label>
               <label class="parameter">
-                <span><b>惯性权重 <i>w</i></b><output for="inertia" id="inertiaValue">0.50</output></span>
-                <input id="inertia" type="range" min="0" max="2" step="0.05" value="0.5" />
+                <span><b>惯性权重 <i>w</i></b><output for="inertia" id="inertiaValue">0.30</output></span>
+                <input id="inertia" type="range" min="0" max="2" step="0.05" value="0.3" />
               </label>
               <label class="parameter">
                 <span><b>个体学习因子 <i>c₁</i></b><output for="cognitive" id="cognitiveValue">0.30</output></span>
                 <input id="cognitive" type="range" min="0" max="2" step="0.1" value="0.3" />
               </label>
               <label class="parameter">
-                <span><b>社会学习因子 <i>c₂</i></b><output for="social" id="socialValue">1.50</output></span>
-                <input id="social" type="range" min="0" max="2" step="0.1" value="1.5" />
+                <span><b>社会学习因子 <i>c₂</i></b><output for="social" id="socialValue">1.10</output></span>
+                <input id="social" type="range" min="0" max="2" step="0.1" value="1.1" />
               </label>
               <label class="parameter">
                 <span><b>最大速度</b><output for="maxVelocity" id="maxVelocityValue">10%</output></span>
@@ -266,7 +273,7 @@
             </div>
 
             <div class="parameter-list algorithm-parameters" id="focvParameters" hidden>
-              <label class="parameter"><span><b>开路电压比例 K<sub>oc</sub></b><output for="focvRatio" id="focvRatioValue">0.76</output></span><input id="focvRatio" type="range" min="0.5" max="0.95" step="0.01" value="0.76" /></label>
+              <label class="parameter"><span><b>开路电压比例 K<sub>oc</sub></b><output for="focvRatio" id="focvRatioValue">0.76</output></span><input id="focvRatio" type="range" min="0.05" max="0.95" step="0.01" value="0.76" /></label>
               <label class="parameter"><span><b>开路采样周期</b><output for="focvSamplePeriod" id="focvSamplePeriodValue">20</output></span><input id="focvSamplePeriod" type="range" min="2" max="60" step="1" value="20" /></label>
               <label class="parameter"><span><b>最大速度</b><output for="focvMaxVelocity" id="focvMaxVelocityValue">10%</output></span><input id="focvMaxVelocity" type="range" min="1" max="30" step="1" value="10" /></label>
             </div>
@@ -336,6 +343,7 @@
               <label class="parameter"><span><b>蜂群规模</b><output for="abcPopulation" id="abcPopulationValue">5</output></span><input id="abcPopulation" type="range" min="2" max="10" step="1" value="5" /></label>
               <label class="parameter"><span><b>邻域搜索系数 φ</b><output for="abcPhi" id="abcPhiValue">1.00</output></span><input id="abcPhi" type="range" min="0.1" max="2" step="0.1" value="1" /></label>
               <label class="parameter"><span><b>侏察蜂引导系数</b><output for="abcBestGain" id="abcBestGainValue">0.60</output></span><input id="abcBestGain" type="range" min="0" max="2" step="0.1" value="0.6" /></label>
+              <label class="parameter"><span><b>停滞淘汰周期 limit</b><output for="abcAbandonLimit" id="abcAbandonLimitValue">12</output></span><input id="abcAbandonLimit" type="range" min="2" max="50" step="1" value="12" /></label>
               <label class="distribution-field"><span>初始位置分布</span><select id="abcInitialDistribution"><option value="random">随机分布</option><option value="uniform" selected>均匀分布</option></select></label>
             </div>
 
@@ -383,13 +391,50 @@
               <label class="parameter"><span><b>训练回合数</b><output for="rlEpisodes" id="rlEpisodesValue">800</output></span><input id="rlEpisodes" type="range" min="100" max="3000" step="100" value="800" /></label>
               <label class="parameter"><span><b>电压动作步长 ΔU</b><output for="rlStep" id="rlStepValue">2.00 V</output></span><input id="rlStep" type="range" min="0.5" max="10" step="0.5" value="2" /></label>
             </div>
+            <div class="parameter-list algorithm-parameters" id="dqnParameters" hidden>
+              <label class="parameter"><span><b>学习率 α</b><output for="dqnLearningRate" id="dqnLearningRateValue">0.03</output></span><input id="dqnLearningRate" type="range" min="0.001" max="0.2" step="0.001" value="0.03" /></label>
+              <label class="parameter"><span><b>折扣因子 γ</b><output for="dqnDiscount" id="dqnDiscountValue">0.98</output></span><input id="dqnDiscount" type="range" min="0" max="0.99" step="0.01" value="0.98" /></label>
+              <label class="parameter"><span><b>探索率 ε</b><output for="dqnExploration" id="dqnExplorationValue">0.08</output></span><input id="dqnExploration" type="range" min="0" max="1" step="0.01" value="0.08" /></label>
+              <label class="parameter"><span><b>经验回放容量</b><output for="dqnReplay" id="dqnReplayValue">512</output></span><input id="dqnReplay" type="range" min="32" max="1024" step="32" value="512" /></label>
+              <label class="parameter"><span><b>电压动作步长 ΔU</b><output for="dqnStep" id="dqnStepValue">2.00 V</output></span><input id="dqnStep" type="range" min="0.5" max="10" step="0.5" value="2" /></label>
+            </div>
+            <div class="parameter-list algorithm-parameters" id="sacParameters" hidden>
+              <label class="parameter"><span><b>Actor 学习率</b><output for="sacActorRate" id="sacActorRateValue">0.05</output></span><input id="sacActorRate" type="range" min="0.001" max="0.2" step="0.001" value="0.05" /></label>
+              <label class="parameter"><span><b>折扣因子 γ</b><output for="sacDiscount" id="sacDiscountValue">0.99</output></span><input id="sacDiscount" type="range" min="0" max="0.99" step="0.01" value="0.99" /></label>
+              <label class="parameter"><span><b>熵温度 α</b><output for="sacEntropy" id="sacEntropyValue">0.06</output></span><input id="sacEntropy" type="range" min="0" max="1" step="0.01" value="0.06" /></label>
+              <label class="parameter"><span><b>最大连续动作</b><output for="sacMaxAction" id="sacMaxActionValue">4.00 V</output></span><input id="sacMaxAction" type="range" min="0.5" max="15" step="0.5" value="4" /></label>
+            </div>
+            <div class="parameter-list algorithm-parameters" id="pso_poParameters" hidden>
+              <label class="parameter"><span><b>粒子数</b><output for="psoPoPopulation" id="psoPoPopulationValue">5</output></span><input id="psoPoPopulation" type="range" min="2" max="10" step="1" value="5" /></label>
+              <label class="parameter"><span><b>全局搜索占比</b><output for="psoPoSwitch" id="psoPoSwitchValue">60%</output></span><input id="psoPoSwitch" type="range" min="10" max="90" step="5" value="60" /></label>
+              <label class="parameter"><span><b>P&amp;O 局部步长</b><output for="psoPoStep" id="psoPoStepValue">0.50 V</output></span><input id="psoPoStep" type="range" min="0.1" max="5" step="0.1" value="0.5" /></label>
+              <label class="distribution-field"><span>初始位置分布</span><select id="psoPoInitialDistribution"><option value="random">随机分布</option><option value="uniform" selected>均匀分布</option></select></label>
+            </div>
+            <div class="parameter-list algorithm-parameters" id="ga_poParameters" hidden>
+              <label class="parameter"><span><b>种群规模</b><output for="gaPoPopulation" id="gaPoPopulationValue">5</output></span><input id="gaPoPopulation" type="range" min="2" max="10" step="1" value="5" /></label>
+              <label class="parameter"><span><b>变异概率</b><output for="gaPoMutation" id="gaPoMutationValue">0.20</output></span><input id="gaPoMutation" type="range" min="0" max="1" step="0.01" value="0.2" /></label>
+              <label class="parameter"><span><b>P&amp;O 局部步长</b><output for="gaPoStep" id="gaPoStepValue">0.50 V</output></span><input id="gaPoStep" type="range" min="0.1" max="5" step="0.1" value="0.5" /></label>
+              <label class="distribution-field"><span>初始位置分布</span><select id="gaPoInitialDistribution"><option value="random">随机分布</option><option value="uniform" selected>均匀分布</option></select></label>
+            </div>
+            <div class="parameter-list algorithm-parameters" id="ga_fuzzyParameters" hidden>
+              <label class="parameter"><span><b>GA 种群规模</b><output for="gaFuzzyPopulation" id="gaFuzzyPopulationValue">5</output></span><input id="gaFuzzyPopulation" type="range" min="2" max="10" step="1" value="5" /></label>
+              <label class="parameter"><span><b>最大模糊电压步长</b><output for="gaFuzzyStep" id="gaFuzzyStepValue">3.00 V</output></span><input id="gaFuzzyStep" type="range" min="0.1" max="10" step="0.1" value="3" /></label>
+              <label class="parameter"><span><b>误差缩放 K<sub>e</sub></b><output for="gaFuzzyGain" id="gaFuzzyGainValue">1.00</output></span><input id="gaFuzzyGain" type="range" min="0.1" max="5" step="0.1" value="1" /></label>
+              <label class="distribution-field"><span>初始位置分布</span><select id="gaFuzzyInitialDistribution"><option value="random">随机分布</option><option value="uniform" selected>均匀分布</option></select></label>
+            </div>
+            <div class="parameter-list algorithm-parameters" id="ga_annParameters" hidden>
+              <label class="parameter"><span><b>GA 种群规模</b><output for="gaAnnPopulation" id="gaAnnPopulationValue">7</output></span><input id="gaAnnPopulation" type="range" min="3" max="12" step="1" value="7" /></label>
+              <label class="parameter"><span><b>GA 变异概率</b><output for="gaAnnMutation" id="gaAnnMutationValue">0.18</output></span><input id="gaAnnMutation" type="range" min="0" max="1" step="0.01" value="0.18" /></label>
+              <label class="parameter"><span><b>ANN 引导权重</b><output for="gaAnnGuide" id="gaAnnGuideValue">0.65</output></span><input id="gaAnnGuide" type="range" min="0" max="1" step="0.05" value="0.65" /></label>
+              <label class="distribution-field"><span>初始位置分布</span><select id="gaAnnInitialDistribution"><option value="random">随机分布</option><option value="uniform" selected>均匀分布</option></select></label>
+            </div>
             </section>
 
             <div class="parameter-actions">
               <button class="parameter-help-button" id="parameterHelpButton" type="button" aria-haspopup="dialog" aria-controls="parameterHelpModal"><span aria-hidden="true">?</span><span>MPPT算法参数解释</span></button>
               <button class="parameter-reset-button" id="resetAlgorithmButton" type="button"><span aria-hidden="true">↺</span><span>参数初始化</span></button>
             </div>
-            <p class="machine-learning-note" id="machineLearningNote" role="note" hidden>说明：所选工况的光伏运行数据同时作为训练集和测试集，并非基于大量独立数据训练，结果仅用于演示，不具有代表性。</p>
+            <p class="machine-learning-note" id="machineLearningNote" role="note" hidden>说明：所选工况的光伏运行数据同时作为训练集和测试集；DQN 与 SAC 使用轻量化在线近似展示决策机制。结果仅用于教学演示，不等同于论文中的离线训练模型或实验性能。</p>
             <button class="button run-button" id="runButton" type="button"><span class="play-icon">▶</span><span id="runButtonLabel">运行 P&amp;O</span></button>
             <button class="text-button" id="downloadButton" type="button" disabled>↓ 下载运行数据 CSV</button>
           </aside>
@@ -438,7 +483,7 @@
             </article>
 
             <div class="playback" aria-label="动画播放控制">
-              <select id="speed" aria-label="播放速度"><option value="900">0.5×</option><option value="500" selected>1×</option><option value="250">2×</option><option value="110">4×</option><option value="55">8×</option></select>
+              <select id="speed" aria-label="播放速度"><option value="500" selected>1×</option><option value="250">2×</option><option value="110">4×</option><option value="55">8×</option><option value="28">16×</option></select>
               <button id="previousButton" aria-label="上一次迭代">←</button>
               <button id="playButton" class="play-toggle" aria-label="播放或暂停">▶</button>
               <button id="nextButton" aria-label="下一次迭代">→</button>
@@ -468,7 +513,7 @@
       </div>
     </div>
     <div id="toast" role="status" aria-live="polite"></div>
-    <script src="./app.js?v=20261012-parameter-references" defer></script>
+    <script src="./app.js?v=20261013-canvas-fix" defer></script>
   </body>
 </html>
 
