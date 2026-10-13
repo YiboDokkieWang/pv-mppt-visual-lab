@@ -12,8 +12,14 @@ let renderFrameHandle = 0;
 let canvasResizeObserver = null;
 
 const systemDiagramImage = new Image();
-systemDiagramImage.src = './assets/mppt-system-irradiance-v2.png';
+let systemDiagramLoadFailed = false;
+systemDiagramImage.src = './assets/mppt-system-irradiance-v2.jpg';
 systemDiagramImage.addEventListener('load', () => {
+  systemDiagramLoadFailed = false;
+  if (state.data) queueCanvasRender();
+});
+systemDiagramImage.addEventListener('error', () => {
+  systemDiagramLoadFailed = true;
   if (state.data) queueCanvasRender();
 });
 
@@ -3047,7 +3053,10 @@ function drawIuChart() {
     ctx.font = '600 13px "Times New Roman", Microsoft YaHei, serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(state.language === 'en' ? 'Loading system diagram…' : '正在加载系统架构图…', width / 2, height / 2);
+    const message = systemDiagramLoadFailed
+      ? (state.language === 'en' ? 'System diagram failed to load. Please refresh the page.' : '系统架构图加载失败，请刷新页面。')
+      : (state.language === 'en' ? 'Loading system diagram…' : '正在加载系统架构图…');
+    ctx.fillText(message, width / 2, height / 2);
     return;
   }
 
