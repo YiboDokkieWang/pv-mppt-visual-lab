@@ -2,7 +2,7 @@
 
 An interactive, browser-based visualization platform for comparing photovoltaic maximum power point tracking algorithms on measured P–U characteristic curves.
 
-The site runs entirely in the browser and includes four categories: conventional MPPT (11 methods), fuzzy logic control (1 method), metaheuristic optimization (7 algorithms), and demonstration-oriented machine learning (4 methods).
+The site runs entirely in the browser and includes 29 methods across five categories: conventional MPPT (11 methods), fuzzy logic control (1 method), metaheuristic optimization (7 algorithms), demonstration-oriented machine learning (6 methods), and hybrid algorithms (4 methods).
 
 ## Website
 
