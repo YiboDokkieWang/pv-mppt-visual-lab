@@ -481,10 +481,10 @@ const algorithmContent = {
   },
   dqn: { shortName: 'DQN', title: '深度Q网络(DQN)实现光伏MPPT', description: '本地教学演示以轻量化函数近似器表示离散电压动作的 Q 值，并用 ε-贪婪决策展示 DQN 的 MPPT 控制逻辑；不复现论文训练规模。', formulaLabelOne: '时序差分目标', formulaOne: 'y = r + γ max<sub>a′</sub>Q<sub>target</sub>(s′,a′)', formulaLabelTwo: '网络损失', formulaTwo: 'L(θ)=E[(y−Q(s,a;θ))<sup>2</sup>]', chartTitle: 'DQN 功率轨迹', runLabel: '运行 DQN', tracksBest: true, iterationKey: 'dqnIterations' },
   sac: { shortName: 'SAC', title: 'Soft Actor-Critic(SAC)实现光伏MPPT', description: '本地教学演示以轻量化连续策略近似 SAC 的功率寻优与熵探索权衡；不复现论文中的完整双 Q 网络和离线训练规模。', formulaLabelOne: '软状态值目标', formulaOne: 'y = r + γ[Q<sub>target</sub>(s′,a′) − α log π(a′|s′)]', formulaLabelTwo: '连续策略动作', formulaTwo: 'ΔU = ΔU<sub>max</sub> tanh(μ(s)+σ(s)ε)', chartTitle: 'SAC 连续控制功率轨迹', runLabel: '运行 SAC', tracksBest: true, iterationKey: 'sacIterations' },
-  pso_po: { shortName: 'PSO+P&O', title: '粒子群+P&O混合算法实现光伏MPPT', description: '先由 PSO 在多峰 P–U 曲线上定位高质量区域，再切换到小步长 P&O 完成局部跟踪并降低稳态振荡。', formulaLabelOne: '全局搜索', formulaOne: 'v<sub>i</sub>←wv<sub>i</sub>+c<sub>1</sub>r<sub>1</sub>(pbest<sub>i</sub>−x<sub>i</sub>)+c<sub>2</sub>r<sub>2</sub>(gbest−x<sub>i</sub>)', formulaLabelTwo: '局部精修', formulaTwo: 'U<sub>ref</sub>(k+1)=U<sub>ref</sub>(k)+ΔU<sub>PO</sub>·sgn(ΔPΔU)', chartTitle: 'PSO+P&O 功率轨迹', runLabel: '运行 PSO+P&O', population: true, tracksBest: true, iterationKey: 'psoPoIterations' },
-  ga_po: { shortName: 'GA+P&O', title: '遗传算法+P&O混合算法实现光伏MPPT', description: '遗传算法先执行全局种群搜索，随后把最优个体交给 P&O 进行局部精细跟踪。', formulaLabelOne: '遗传全局搜索', formulaOne: 'U<sub>c</sub>=λU<sub>p1</sub>+(1−λ)U<sub>p2</sub>+mutation', formulaLabelTwo: 'P&O 局部搜索', formulaTwo: 'U<sub>ref</sub>(k+1)=U<sub>ref</sub>(k)+ΔU<sub>PO</sub>·sgn(ΔPΔU)', chartTitle: 'GA+P&O 功率轨迹', runLabel: '运行 GA+P&O', population: true, tracksBest: true, iterationKey: 'gaPoIterations' },
-  ga_fuzzy: { shortName: 'GA+FLC', title: '遗传算法+模糊控制实现光伏MPPT', description: 'GA 优化模糊控制器的尺度与搜索起点，在线模糊推理再根据功率斜率及其变化量生成连续电压修正。', formulaLabelOne: 'GA 参数优化', formulaOne: '(K<sub>e</sub>,K<sub>ce</sub>,K<sub>u</sub>)* = arg max η<sub>MPPT</sub>', formulaLabelTwo: '模糊控制输出', formulaTwo: 'ΔU = Σ μ<sub>j</sub>z<sub>j</sub>/Σ μ<sub>j</sub>', chartTitle: 'GA+模糊控制功率轨迹', runLabel: '运行 GA+FLC', population: true, tracksBest: true, iterationKey: 'gaFuzzyIterations' },
-  ga_ann: { shortName: 'GA-ANN', title: '遗传算法优化人工神经网络(GA-ANN)实现光伏MPPT', description: 'GA 优化 ANN 结构与候选工作区，ANN 学习已采样工作点并给出最大功率电压引导。本页按论文机制制作教学仿真，并非论文离线网络的逐参数复现。', formulaLabelOne: 'GA 优化 ANN', formulaOne: 'θ* = arg min<sub>θ∈GA</sub> RMSE(V<sub>MPP</sub>, f<sub>ANN</sub>(G,T;θ))', formulaLabelTwo: 'ANN 引导搜索', formulaTwo: 'U<sub>i</sub>←(1−λ)U<sub>GA,i</sub>+λÛ<sub>ANN</sub>', chartTitle: 'GA-ANN 混合搜索功率轨迹', runLabel: '运行 GA-ANN', population: true, tracksBest: true, entityPrefix: '个体', iterationKey: 'gaAnnIterations' },
+  pso_po: { shortName: 'PSO-P&O', title: '粒子群-P&O混合算法实现光伏MPPT', description: '先由 PSO 在多峰 P–U 曲线上定位高质量区域，再切换到小步长 P&O 完成局部跟踪并降低稳态振荡。', formulaLabelOne: '全局搜索', formulaOne: 'v<sub>i</sub>←wv<sub>i</sub>+c<sub>1</sub>r<sub>1</sub>(pbest<sub>i</sub>−x<sub>i</sub>)+c<sub>2</sub>r<sub>2</sub>(gbest−x<sub>i</sub>)', formulaLabelTwo: '局部精修', formulaTwo: 'U<sub>ref</sub>(k+1)=U<sub>ref</sub>(k)+ΔU<sub>PO</sub>·sgn(ΔPΔU)', chartTitle: 'PSO-P&O 功率轨迹', runLabel: '运行 PSO-P&O', population: true, tracksBest: true, iterationKey: 'psoPoIterations' },
+  ga_po: { shortName: 'GA-P&O', title: '遗传算法-P&O混合算法实现光伏MPPT', description: '遗传算法先执行全局种群搜索，随后把最优个体交给 P&O 进行局部精细跟踪。', formulaLabelOne: '遗传全局搜索', formulaOne: 'U<sub>c</sub>=λU<sub>p1</sub>+(1−λ)U<sub>p2</sub>+mutation', formulaLabelTwo: 'P&O 局部搜索', formulaTwo: 'U<sub>ref</sub>(k+1)=U<sub>ref</sub>(k)+ΔU<sub>PO</sub>·sgn(ΔPΔU)', chartTitle: 'GA-P&O 功率轨迹', runLabel: '运行 GA-P&O', population: true, tracksBest: true, iterationKey: 'gaPoIterations' },
+  ga_fuzzy: { shortName: 'GA-FLC', title: '遗传算法-模糊控制实现光伏MPPT', description: 'GA 优化模糊控制器的尺度与搜索起点，在线模糊推理再根据功率斜率及其变化量生成连续电压修正。', formulaLabelOne: 'GA 参数优化', formulaOne: '(K<sub>e</sub>,K<sub>ce</sub>,K<sub>u</sub>)* = arg max η<sub>MPPT</sub>', formulaLabelTwo: '模糊控制输出', formulaTwo: 'ΔU = Σ μ<sub>j</sub>z<sub>j</sub>/Σ μ<sub>j</sub>', chartTitle: 'GA-模糊控制功率轨迹', runLabel: '运行 GA-FLC', population: true, tracksBest: true, iterationKey: 'gaFuzzyIterations' },
+  ga_ann: { shortName: 'GA-BPNN', title: '遗传算法优化BP神经网络(GA-BPNN)实现光伏MPPT', description: '论文方法使用 GA 优化单隐藏层 BPNN 的神经元数量、激活函数与反向传播训练算法。本页按其 GA+BPNN 机制制作教学近似，并非论文离线网络的逐参数复现。', formulaLabelOne: 'GA 优化 BPNN', formulaOne: 'θ* = arg min<sub>θ∈GA</sub> MSE(t, f<sub>BPNN</sub>(E,ΔE;θ))', formulaLabelTwo: 'BPNN 引导搜索', formulaTwo: 'U<sub>i</sub>←(1−λ)U<sub>GA,i</sub>+λÛ<sub>BPNN</sub>', chartTitle: 'GA-BPNN 混合搜索功率轨迹', runLabel: '运行 GA-BPNN', population: true, tracksBest: true, entityPrefix: '个体', iterationKey: 'gaAnnIterations' },
 };
 
 const algorithmGroups = {
@@ -515,7 +515,7 @@ const algorithmLabels = {
   afsa: '人工鱼群算法 (AFSA)',
   de: '差分进化算法 (DE)',
   dqn: '深度Q网络 (DQN)', sac: 'Soft Actor-Critic (SAC)',
-  pso_po: '粒子群 + P&O', ga_po: '遗传算法 + P&O', ga_fuzzy: '遗传算法 + 模糊控制', ga_ann: '遗传算法优化人工神经网络 (GA-ANN)',
+  pso_po: '粒子群-P&O', ga_po: '遗传算法-P&O', ga_fuzzy: '遗传算法-模糊控制', ga_ann: '遗传算法优化BP神经网络 (GA-BPNN)',
   fuzzy: '模糊控制法 (FLC)',
   nn: 'BP神经网络 (BPNN)',
   svr: '支持向量回归 (SVR)',
@@ -544,10 +544,10 @@ const algorithmLabelsEn = {
   de: 'Differential Evolution (DE)',
   dqn: 'Deep Q-Network (DQN)',
   sac: 'Soft Actor-Critic (SAC)',
-  pso_po: 'Particle Swarm + P&O',
-  ga_po: 'Genetic Algorithm + P&O',
-  ga_fuzzy: 'Genetic Algorithm + Fuzzy Control',
-  ga_ann: 'GA-Optimized Artificial Neural Network (GA-ANN)',
+  pso_po: 'Particle Swarm-P&O',
+  ga_po: 'Genetic Algorithm-P&O',
+  ga_fuzzy: 'Genetic Algorithm-Fuzzy Control',
+  ga_ann: 'GA-Optimized BPNN',
   fuzzy: 'Fuzzy Logic Control (FLC)',
   nn: 'Backpropagation Neural Network (BPNN)',
   svr: 'Support Vector Regression (SVR)',
@@ -952,10 +952,10 @@ const algorithmContentEn = {
   de: { title: 'Photovoltaic MPPT Using Differential Evolution (DE)', description: 'DE constructs candidate solutions from voltage differences among individuals and updates the population one member at a time using greedy selection.', formulaLabelOne: 'Differential mutation', formulaLabelTwo: 'Crossover and greedy selection', chartTitle: 'Differential-Evolution Power Trajectories', runLabel: 'Run DE' },
   dqn: { title: 'Photovoltaic MPPT Using a Deep Q-Network (DQN)', description: 'DQN approximates action values for discrete voltage actions and learns through epsilon-greedy exploration and replay.', formulaLabelOne: 'Temporal-difference target', formulaLabelTwo: 'Network loss', chartTitle: 'DQN Power Trajectory', runLabel: 'Run DQN' },
   sac: { title: 'Photovoltaic MPPT Using Soft Actor-Critic (SAC)', description: 'SAC learns a continuous voltage-control policy while maximizing both expected return and policy entropy.', formulaLabelOne: 'Soft value target', formulaLabelTwo: 'Continuous policy action', chartTitle: 'SAC Power Trajectory', runLabel: 'Run SAC' },
-  pso_po: { title: 'Photovoltaic MPPT Using Hybrid PSO + P&O', description: 'PSO first locates a promising region on the multimodal P–U curve, then small-step P&O performs local tracking.', formulaLabelOne: 'Global search', formulaLabelTwo: 'Local refinement', chartTitle: 'PSO + P&O Power Trajectory', runLabel: 'Run PSO + P&O' },
-  ga_po: { title: 'Photovoltaic MPPT Using Hybrid GA + P&O', description: 'GA performs global population search before its best individual seeds a local P&O tracker.', formulaLabelOne: 'Genetic global search', formulaLabelTwo: 'P&O local search', chartTitle: 'GA + P&O Power Trajectory', runLabel: 'Run GA + P&O' },
-  ga_fuzzy: { title: 'Photovoltaic MPPT Using Hybrid GA + Fuzzy Control', description: 'GA tunes the fuzzy controller scale and starting region, while online fuzzy inference produces voltage corrections.', formulaLabelOne: 'GA parameter optimization', formulaLabelTwo: 'Fuzzy-control output', chartTitle: 'GA + Fuzzy Power Trajectory', runLabel: 'Run GA + FLC' },
-  ga_ann: { title: 'Photovoltaic MPPT Using a GA-Optimized Artificial Neural Network (GA-ANN)', description: 'GA optimizes the ANN design and candidate region, while the ANN learns from sampled operating points and guides the population toward the predicted MPP voltage. This is a mechanism-level educational simulation, not a parameter-for-parameter reproduction of the paper’s offline network.', formulaLabelOne: 'GA optimization of ANN', formulaLabelTwo: 'ANN-guided search', chartTitle: 'GA-ANN Hybrid Search Power Trajectory', runLabel: 'Run GA-ANN' },
+  pso_po: { title: 'Photovoltaic MPPT Using Hybrid PSO-P&O', description: 'PSO first locates a promising region on the multimodal P–U curve, then small-step P&O performs local tracking.', formulaLabelOne: 'Global search', formulaLabelTwo: 'Local refinement', chartTitle: 'PSO-P&O Power Trajectory', runLabel: 'Run PSO-P&O' },
+  ga_po: { title: 'Photovoltaic MPPT Using Hybrid GA-P&O', description: 'GA performs global population search before its best individual seeds a local P&O tracker.', formulaLabelOne: 'Genetic global search', formulaLabelTwo: 'P&O local search', chartTitle: 'GA-P&O Power Trajectory', runLabel: 'Run GA-P&O' },
+  ga_fuzzy: { title: 'Photovoltaic MPPT Using Hybrid GA-Fuzzy Control', description: 'GA tunes the fuzzy controller scale and starting region, while online fuzzy inference produces voltage corrections.', formulaLabelOne: 'GA parameter optimization', formulaLabelTwo: 'Fuzzy-control output', chartTitle: 'GA-Fuzzy Power Trajectory', runLabel: 'Run GA-FLC' },
+  ga_ann: { title: 'Photovoltaic MPPT Using a GA-Optimized Backpropagation Neural Network (GA-BPNN)', description: 'In the cited paper, GA optimizes the neuron count, activation functions, and backpropagation training algorithm of a single-hidden-layer BPNN. This page provides a mechanism-level GA+BPNN teaching approximation, not a parameter-for-parameter reproduction of the paper’s offline network.', formulaLabelOne: 'GA optimization of BPNN', formulaLabelTwo: 'BPNN-guided search', chartTitle: 'GA-BPNN Hybrid Search Power Trajectory', runLabel: 'Run GA-BPNN', entityPrefix: 'Individual ' },
 };
 
 const uiText = {
@@ -986,7 +986,10 @@ const staticTextEnglish = {
   '误差缩放因子 K': 'Error Scaling Factor K', '误差变化缩放 K': 'Error-Change Scaling K', '蜂群规模': 'Bee Colony Size', '邻域搜索系数 φ': 'Neighborhood Search Factor φ', '侏察蜂引导系数': 'Scout-Bee Guidance Factor',
   '人工鱼数': 'Artificial Fish Count', '感知距离 Visual': 'Visual Range', '移动步长 Step': 'Movement Step', '拥挤度因子 δ': 'Crowding Factor δ', '试探次数 Try-number': 'Try Number', '差分缩放因子 F': 'Differential Scale Factor F', '交叉概率 CR': 'Crossover Probability CR',
   '隐藏层神经元数': 'Hidden-Layer Neurons', '学习率 η': 'Learning Rate η', '训练轮数 Epochs': 'Training Epochs',
-  'GA 变异概率': 'GA Mutation Probability', 'ANN 引导权重': 'ANN Guidance Weight',
+  '经验回放容量': 'Replay Buffer Capacity', 'Actor 学习率': 'Actor Learning Rate', '熵温度 α': 'Entropy Temperature α', '最大连续动作': 'Maximum Continuous Action',
+  '全局搜索占比': 'Global Search Share', 'P&O 局部步长': 'P&O Local Step', 'GA 种群规模': 'GA Population Size', '最大模糊电压步长': 'Maximum Fuzzy Voltage Step',
+  '停滞淘汰周期 limit': 'Stagnation Abandonment Limit', '误差缩放 K': 'Error Scaling K',
+  'GA 变异概率': 'GA Mutation Probability', 'BPNN 引导权重': 'BPNN Guidance Weight',
   '惩罚系数 C': 'Penalty Parameter C', '不敏感区宽度 ε': 'Epsilon-Insensitive Width ε', 'RBF 核参数 γ': 'RBF Kernel Parameter γ',
   '决策树数量': 'Number of Trees', '最大树深度': 'Maximum Tree Depth', '样本采样比例': 'Bootstrap Sample Ratio',
   '学习率 α': 'Learning Rate α', '折扣因子 γ': 'Discount Factor γ', '探索率 ε': 'Exploration Rate ε', '训练回合数': 'Training Episodes', '电压动作步长 ΔU': 'Voltage Action Step ΔU',
@@ -995,6 +998,7 @@ const staticTextEnglish = {
   '当前工况': 'Selected Condition', '其他工况': 'Other Conditions', '粒子': 'Particles', '参考点理论功率': 'Theoretical Reference Power', '实际光伏功率': 'Actual PV Power',
   '该网站运行基于 Boost 大信号模型和光伏 P–U 特性曲线': 'This website runs on a Boost large-signal model and PV P–U characteristic curves',
   '说明：所选工况的光伏运行数据同时作为训练集和测试集，并非基于大量独立数据训练，结果仅用于演示，不具有代表性。': 'Note: PV operating data from the selected condition are used as both the training and test set. The method is not trained on a large independent dataset, so the result is illustrative and not representative.',
+  '说明：所选工况的光伏运行数据同时作为训练集和测试集；DQN 与 SAC 使用轻量化在线近似展示决策机制。结果仅用于教学演示，不等同于论文中的离线训练模型或实验性能。': 'Note: PV operating data from the selected condition are used as both the training and test set; DQN and SAC use lightweight online approximations to demonstrate their decision-making mechanisms. Results are for educational demonstration only and do not represent the papers’ offline training models or experimental performance.',
 };
 
 const staticTextNodes = [];
@@ -1021,11 +1025,14 @@ function applyStaticTranslations() {
 }
 
 const englishUnits = {
-  particleCount: 'pcs', iterations: 'iter.', poIterations: 'iter.', hcIterations: 'iter.', vpoIterations: 'iter.', jeincMaxJumps: 'jumps', jeincIterations: 'iter.', cvtIterations: 'iter.', focvSamplePeriod: 'iter.', focvIterations: 'iter.', scanHold: 'iter.', scanIterations: 'iter.', escPeriod: 'iter.', escIterations: 'iter.', saIterations: 'iter.', gaPopulation: 'pcs', gaIterations: 'iter.', csNests: 'nests', csIterations: 'iter.', incIterations: 'iter.', vincIterations: 'iter.', mpcHorizon: 'steps', mpcIterations: 'iter.', fuzzyIterations: 'iter.', abcPopulation: 'pcs', abcIterations: 'iter.', afsaPopulation: 'pcs', afsaTry: 'tries', afsaIterations: 'iter.', dePopulation: 'pcs', deIterations: 'iter.', nnHidden: 'neurons', nnEpochs: 'epochs', nnIterations: 'iter.', svrIterations: 'iter.', rfTrees: 'trees', rfDepth: 'levels', rfSampleRatio: '%', rfIterations: 'iter.', rlEpisodes: 'episodes', rlIterations: 'iter.',
+  particleCount: 'particles', iterations: 'iter.', poIterations: 'iter.', hcIterations: 'iter.', vpoIterations: 'iter.', jeincMaxJumps: 'jumps', jeincIterations: 'iter.', cvtIterations: 'iter.', focvSamplePeriod: 'iter.', focvIterations: 'iter.', scanHold: 'iter.', scanIterations: 'iter.', escPeriod: 'iter.', escIterations: 'iter.', saIterations: 'iter.', gaPopulation: 'individuals', gaIterations: 'iter.', csNests: 'nests', csIterations: 'iter.', incIterations: 'iter.', vincIterations: 'iter.', mpcHorizon: 'steps', mpcIterations: 'iter.', fuzzyIterations: 'iter.', abcPopulation: 'bees', abcIterations: 'iter.', abcAbandonLimit: 'cycles', afsaPopulation: 'fish', afsaTry: 'tries', afsaIterations: 'iter.', dePopulation: 'individuals', deIterations: 'iter.', nnHidden: 'neurons', nnEpochs: 'epochs', nnIterations: 'iter.', svrIterations: 'iter.', rfTrees: 'trees', rfDepth: 'levels', rfSampleRatio: '%', rfIterations: 'iter.', rlEpisodes: 'episodes', rlIterations: 'iter.', dqnReplay: 'samples', dqnIterations: 'iter.', sacIterations: 'iter.', psoPoPopulation: 'particles', psoPoIterations: 'iter.', gaPoPopulation: 'individuals', gaPoIterations: 'iter.', gaFuzzyPopulation: 'individuals', gaFuzzyIterations: 'iter.', gaAnnPopulation: 'individuals', gaAnnIterations: 'iter.',
 };
 
+const englishUnitFallbacks = { '个': 'agents', '次': 'iter.', '步': 'steps', '轮': 'epochs', '棵': 'trees', '层': 'levels', '回合': 'episodes', '条': 'samples' };
+
 function localizedUnit(key, chineseUnit) {
-  return state.language === 'en' && englishUnits[key] ? englishUnits[key] : chineseUnit;
+  if (state.language !== 'en') return chineseUnit;
+  return englishUnits[key] || englishUnitFallbacks[chineseUnit] || chineseUnit;
 }
 
 function interpolate(xs, ys, value) {
@@ -3471,11 +3478,11 @@ function applyLanguage(announce = false) {
   const aria = isEnglish ? {
     '.brand': 'Back to top', '#algorithmCategory': 'Algorithm category', '#algorithmSelect': 'MPPT algorithm', '#controlPanel': 'Algorithm parameter settings',
     '#iuChart': 'PV array, Boost converter, MPPT controller, and resistive-load system diagram', '#puChart': 'P–U curves and search points', '#convergenceChart': 'Power trajectories versus iteration', '#outputPowerChart': 'PV array output-power waveform',
-    '#particleLegend': 'Candidate legend', '.output-model-note': 'Waveform legend', '.playback': 'Animation controls', '#parameterHelpButton': 'Explain current algorithm parameters', '#resetAlgorithmButton': 'Reset current algorithm parameters', '#previousButton': 'Previous iteration', '#playButton': 'Play or pause', '#nextButton': 'Next iteration', '#timeline': 'Iteration progress', '#speed': 'Playback speed',
+    '#currentLegend': 'Irradiance of each PV module under the selected condition', '#particleLegend': 'Candidate legend', '.output-model-note': 'Waveform legend', '.playback': 'Animation controls', '#parameterHelpButton': 'Explain current algorithm parameters', '#resetAlgorithmButton': 'Reset current algorithm parameters', '#previousButton': 'Previous iteration', '#playButton': 'Play or pause', '#nextButton': 'Next iteration', '#timeline': 'Iteration progress', '#speed': 'Playback speed',
   } : {
     '.brand': '回到顶部', '#algorithmCategory': '算法类别', '#algorithmSelect': '具体 MPPT 算法', '#controlPanel': '算法参数设置',
     '#iuChart': '四块光伏模块、Boost 变换器、MPPT 控制器与电阻负载系统架构图', '#puChart': 'P-U 曲线与搜索点', '#convergenceChart': '功率随迭代次数的变化曲线', '#outputPowerChart': '光伏阵列输出功率波形',
-    '#particleLegend': '候选点图例', '.output-model-note': '波形图例', '.playback': '动画播放控制', '#parameterHelpButton': '解释当前算法参数', '#resetAlgorithmButton': '恢复当前算法默认参数', '#previousButton': '上一次迭代', '#playButton': '播放或暂停', '#nextButton': '下一次迭代', '#timeline': '迭代进度', '#speed': '播放速度',
+    '#currentLegend': '当前工况下各光伏模块的辐照度', '#particleLegend': '候选点图例', '.output-model-note': '波形图例', '.playback': '动画播放控制', '#parameterHelpButton': '解释当前算法参数', '#resetAlgorithmButton': '恢复当前算法默认参数', '#previousButton': '上一次迭代', '#playButton': '播放或暂停', '#nextButton': '下一次迭代', '#timeline': '迭代进度', '#speed': '播放速度',
   };
   Object.entries(aria).forEach(([selector, label]) => $(selector)?.setAttribute('aria-label', label));
 
