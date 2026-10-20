@@ -147,10 +147,6 @@
                 <span><b>最大迭代数</b><output for="vincIterations" id="vincIterationsValue">150</output></span>
                 <input id="vincIterations" type="range" min="1" max="300" step="1" value="150" />
               </label>
-              <label class="parameter iteration-parameter" id="mpcIterationParameter" hidden>
-                <span><b>最大迭代数</b><output for="mpcIterations" id="mpcIterationsValue">150</output></span>
-                <input id="mpcIterations" type="range" min="1" max="300" step="1" value="150" />
-              </label>
               <label class="parameter iteration-parameter" id="fuzzyIterationParameter" hidden>
                 <span><b>最大迭代数</b><output for="fuzzyIterations" id="fuzzyIterationsValue">150</output></span>
                 <input id="fuzzyIterations" type="range" min="1" max="300" step="1" value="150" />
@@ -187,7 +183,6 @@
               <label class="parameter iteration-parameter" id="sacIterationParameter" hidden><span><b>最大迭代数</b><output for="sacIterations" id="sacIterationsValue">150</output></span><input id="sacIterations" type="range" min="1" max="300" step="1" value="150" /></label>
               <label class="parameter iteration-parameter" id="pso_poIterationParameter" hidden><span><b>最大迭代数</b><output for="psoPoIterations" id="psoPoIterationsValue">150</output></span><input id="psoPoIterations" type="range" min="1" max="300" step="1" value="150" /></label>
               <label class="parameter iteration-parameter" id="ga_poIterationParameter" hidden><span><b>最大迭代数</b><output for="gaPoIterations" id="gaPoIterationsValue">150</output></span><input id="gaPoIterations" type="range" min="1" max="300" step="1" value="150" /></label>
-              <label class="parameter iteration-parameter" id="ga_fuzzyIterationParameter" hidden><span><b>最大迭代数</b><output for="gaFuzzyIterations" id="gaFuzzyIterationsValue">150</output></span><input id="gaFuzzyIterations" type="range" min="1" max="300" step="1" value="150" /></label>
               <label class="parameter iteration-parameter" id="ga_annIterationParameter" hidden><span><b>最大迭代数</b><output for="gaAnnIterations" id="gaAnnIterationsValue">150</output></span><input id="gaAnnIterations" type="range" min="1" max="300" step="1" value="150" /></label>
               </div>
             </section>
@@ -321,16 +316,9 @@
             <div class="parameter-list algorithm-parameters" id="vincParameters" hidden>
               <label class="parameter"><span><b>最小电压步长</b><output for="vincMinStep" id="vincMinStepValue">0.10 V</output></span><input id="vincMinStep" type="range" min="0.05" max="5" step="0.05" value="0.1" /></label>
               <label class="parameter"><span><b>最大电压步长</b><output for="vincMaxStep" id="vincMaxStepValue">2.00 V</output></span><input id="vincMaxStep" type="range" min="0.1" max="15" step="0.1" value="2" /></label>
-              <label class="parameter"><span><b>斜率补偿系数 γ</b><output for="vincCompensation" id="vincCompensationValue">0.80</output></span><input id="vincCompensation" type="range" min="0" max="2" step="0.05" value="0.8" /></label>
+              <label class="parameter"><span><b>斜率缩放因子 N</b><output for="vincScalingFactor" id="vincScalingFactorValue">0.40</output></span><input id="vincScalingFactor" type="range" min="0.01" max="1" step="0.01" value="0.4" /></label>
               <label class="parameter"><span><b>电导判据容差 ε</b><output for="vincTolerance" id="vincToleranceValue">0.020</output></span><input id="vincTolerance" type="range" min="0" max="0.2" step="0.005" value="0.02" /></label>
               <label class="parameter"><span><b>最大速度</b><output for="vincMaxVelocity" id="vincMaxVelocityValue">10%</output></span><input id="vincMaxVelocity" type="range" min="1" max="30" step="1" value="10" /></label>
-            </div>
-
-            <div class="parameter-list algorithm-parameters" id="mpcParameters" hidden>
-              <label class="parameter"><span><b>候选电压步长 ΔU</b><output for="mpcStep" id="mpcStepValue">2.00 V</output></span><input id="mpcStep" type="range" min="0.1" max="10" step="0.1" value="2" /></label>
-              <label class="parameter"><span><b>预测时域 N<sub>p</sub></b><output for="mpcHorizon" id="mpcHorizonValue">3</output></span><input id="mpcHorizon" type="range" min="1" max="8" step="1" value="3" /></label>
-              <label class="parameter"><span><b>控制增量惩罚 λ</b><output for="mpcPenalty" id="mpcPenaltyValue">0.05</output></span><input id="mpcPenalty" type="range" min="0" max="1" step="0.01" value="0.05" /></label>
-              <label class="parameter"><span><b>最大速度</b><output for="mpcMaxVelocity" id="mpcMaxVelocityValue">10%</output></span><input id="mpcMaxVelocity" type="range" min="1" max="30" step="1" value="10" /></label>
             </div>
 
             <div class="parameter-list algorithm-parameters" id="fuzzyParameters" hidden>
@@ -406,21 +394,16 @@
             </div>
             <div class="parameter-list algorithm-parameters" id="pso_poParameters" hidden>
               <label class="parameter"><span><b>粒子数</b><output for="psoPoPopulation" id="psoPoPopulationValue">5</output></span><input id="psoPoPopulation" type="range" min="2" max="10" step="1" value="5" /></label>
-              <label class="parameter"><span><b>全局搜索占比</b><output for="psoPoSwitch" id="psoPoSwitchValue">60%</output></span><input id="psoPoSwitch" type="range" min="10" max="90" step="5" value="60" /></label>
+              <label class="parameter"><span><b>PSO 切换代数 N</b><output for="psoPoSwitchGeneration" id="psoPoSwitchGenerationValue">5</output></span><input id="psoPoSwitchGeneration" type="range" min="1" max="50" step="1" value="5" /></label>
               <label class="parameter"><span><b>P&amp;O 局部步长</b><output for="psoPoStep" id="psoPoStepValue">0.50 V</output></span><input id="psoPoStep" type="range" min="0.1" max="5" step="0.1" value="0.5" /></label>
               <label class="distribution-field"><span>初始位置分布</span><select id="psoPoInitialDistribution"><option value="random">随机分布</option><option value="uniform" selected>均匀分布</option></select></label>
             </div>
             <div class="parameter-list algorithm-parameters" id="ga_poParameters" hidden>
-              <label class="parameter"><span><b>种群规模</b><output for="gaPoPopulation" id="gaPoPopulationValue">5</output></span><input id="gaPoPopulation" type="range" min="2" max="10" step="1" value="5" /></label>
+              <label class="parameter"><span><b>种群规模</b><output for="gaPoPopulation" id="gaPoPopulationValue">6</output></span><input id="gaPoPopulation" type="range" min="2" max="10" step="1" value="6" /></label>
               <label class="parameter"><span><b>变异概率</b><output for="gaPoMutation" id="gaPoMutationValue">0.20</output></span><input id="gaPoMutation" type="range" min="0" max="1" step="0.01" value="0.2" /></label>
               <label class="parameter"><span><b>P&amp;O 局部步长</b><output for="gaPoStep" id="gaPoStepValue">0.50 V</output></span><input id="gaPoStep" type="range" min="0.1" max="5" step="0.1" value="0.5" /></label>
+              <label class="parameter"><span><b>步长衰减因子 α</b><output for="gaPoAlpha" id="gaPoAlphaValue">0.90</output></span><input id="gaPoAlpha" type="range" min="0.5" max="1" step="0.01" value="0.9" /></label>
               <label class="distribution-field"><span>初始位置分布</span><select id="gaPoInitialDistribution"><option value="random">随机分布</option><option value="uniform" selected>均匀分布</option></select></label>
-            </div>
-            <div class="parameter-list algorithm-parameters" id="ga_fuzzyParameters" hidden>
-              <label class="parameter"><span><b>GA 种群规模</b><output for="gaFuzzyPopulation" id="gaFuzzyPopulationValue">5</output></span><input id="gaFuzzyPopulation" type="range" min="2" max="10" step="1" value="5" /></label>
-              <label class="parameter"><span><b>最大模糊电压步长</b><output for="gaFuzzyStep" id="gaFuzzyStepValue">3.00 V</output></span><input id="gaFuzzyStep" type="range" min="0.1" max="10" step="0.1" value="3" /></label>
-              <label class="parameter"><span><b>误差缩放 K<sub>e</sub></b><output for="gaFuzzyGain" id="gaFuzzyGainValue">1.00</output></span><input id="gaFuzzyGain" type="range" min="0.1" max="5" step="0.1" value="1" /></label>
-              <label class="distribution-field"><span>初始位置分布</span><select id="gaFuzzyInitialDistribution"><option value="random">随机分布</option><option value="uniform" selected>均匀分布</option></select></label>
             </div>
             <div class="parameter-list algorithm-parameters" id="ga_annParameters" hidden>
               <label class="parameter"><span><b>GA 种群规模</b><output for="gaAnnPopulation" id="gaAnnPopulationValue">5</output></span><input id="gaAnnPopulation" type="range" min="3" max="12" step="1" value="5" /></label>
@@ -516,4 +499,3 @@
     <script src="./app.js?v=20261013-canvas-fix" defer></script>
   </body>
 </html>
-

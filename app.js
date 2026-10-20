@@ -101,15 +101,10 @@ const controls = {
   incIterations: $('#incIterations'),
   vincMinStep: $('#vincMinStep'),
   vincMaxStep: $('#vincMaxStep'),
-  vincCompensation: $('#vincCompensation'),
+  vincScalingFactor: $('#vincScalingFactor'),
   vincTolerance: $('#vincTolerance'),
   vincMaxVelocity: $('#vincMaxVelocity'),
   vincIterations: $('#vincIterations'),
-  mpcStep: $('#mpcStep'),
-  mpcHorizon: $('#mpcHorizon'),
-  mpcPenalty: $('#mpcPenalty'),
-  mpcMaxVelocity: $('#mpcMaxVelocity'),
-  mpcIterations: $('#mpcIterations'),
   fuzzyStep: $('#fuzzyStep'),
   fuzzyErrorGain: $('#fuzzyErrorGain'),
   fuzzyDeltaGain: $('#fuzzyDeltaGain'),
@@ -155,9 +150,8 @@ const controls = {
   rlIterations: $('#rlIterations'),
   dqnLearningRate: $('#dqnLearningRate'), dqnDiscount: $('#dqnDiscount'), dqnExploration: $('#dqnExploration'), dqnReplay: $('#dqnReplay'), dqnStep: $('#dqnStep'), dqnIterations: $('#dqnIterations'),
   sacActorRate: $('#sacActorRate'), sacDiscount: $('#sacDiscount'), sacEntropy: $('#sacEntropy'), sacMaxAction: $('#sacMaxAction'), sacIterations: $('#sacIterations'),
-  psoPoPopulation: $('#psoPoPopulation'), psoPoSwitch: $('#psoPoSwitch'), psoPoStep: $('#psoPoStep'), psoPoInitialDistribution: $('#psoPoInitialDistribution'), psoPoIterations: $('#psoPoIterations'),
-  gaPoPopulation: $('#gaPoPopulation'), gaPoMutation: $('#gaPoMutation'), gaPoStep: $('#gaPoStep'), gaPoInitialDistribution: $('#gaPoInitialDistribution'), gaPoIterations: $('#gaPoIterations'),
-  gaFuzzyPopulation: $('#gaFuzzyPopulation'), gaFuzzyStep: $('#gaFuzzyStep'), gaFuzzyGain: $('#gaFuzzyGain'), gaFuzzyInitialDistribution: $('#gaFuzzyInitialDistribution'), gaFuzzyIterations: $('#gaFuzzyIterations'),
+  psoPoPopulation: $('#psoPoPopulation'), psoPoSwitchGeneration: $('#psoPoSwitchGeneration'), psoPoStep: $('#psoPoStep'), psoPoInitialDistribution: $('#psoPoInitialDistribution'), psoPoIterations: $('#psoPoIterations'),
+  gaPoPopulation: $('#gaPoPopulation'), gaPoMutation: $('#gaPoMutation'), gaPoStep: $('#gaPoStep'), gaPoAlpha: $('#gaPoAlpha'), gaPoInitialDistribution: $('#gaPoInitialDistribution'), gaPoIterations: $('#gaPoIterations'),
   gaAnnPopulation: $('#gaAnnPopulation'), gaAnnMutation: $('#gaAnnMutation'), gaAnnGuide: $('#gaAnnGuide'), gaAnnInitialDistribution: $('#gaAnnInitialDistribution'), gaAnnIterations: $('#gaAnnIterations'),
   updateTime: $('#updateTime'),
   inductance: $('#inductance'),
@@ -352,27 +346,14 @@ const algorithmContent = {
   vinc: {
     shortName: 'VSS-INC',
     title: '变步长电导增量法(VSS-INC)实现光伏MPPT',
-    description: '变步长电导增量法根据电导误差及前后两次斜率的变化量衰减补偿，以减小 MPP 附近振荡。',
-    formulaLabelOne: '电导滑差',
-    formulaOne: 'e(k) = ΔI/ΔU + I/U',
-    formulaLabelTwo: '斜率补偿步长',
-    formulaTwo: 'ΔU(k) = clamp[ΔU<sub>min</sub> + γ|e(k)|·|e(k)−e(k−1)|, ΔU<sub>min</sub>, ΔU<sub>max</sub>]',
+    description: '变步长电导增量法以电导增量判据确定搜索方向，并用 P–U 曲线斜率乘缩放因子 N 生成扰动步长；限幅器兼顾快速跟踪与 MPP 附近的小振荡。',
+    formulaLabelOne: '电导增量判据',
+    formulaOne: 'dP/dU = I + U·dI/dU = 0 &nbsp; ⇒ &nbsp; dI/dU = −I/U',
+    formulaLabelTwo: '斜率变步长',
+    formulaTwo: 'ΔU(k) = clamp[N·|ΔP/ΔU|, ΔU<sub>min</sub>, ΔU<sub>max</sub>]',
     chartTitle: '变步长 INC 功率轨迹',
     runLabel: '运行 VSS-INC',
     iterationKey: 'vincIterations',
-  },
-  mpc: {
-    shortName: 'MPC',
-    title: '模型预测控制(MPC)实现光伏MPPT',
-    description: '有限电压集 MPC 利用 Boost 大信号平均模型预测多个候选电压的暂态响应，通过有限时域代价函数选择下一个电压参考。',
-    formulaLabelOne: '状态预测',
-    formulaOne: 'x(k+j+1) = f<sub>Boost</sub>[x(k+j), U<sub>ref</sub>]',
-    formulaLabelTwo: '有限时域代价函数',
-    formulaTwo: 'J = −(1/N<sub>p</sub>)Σ P̂<sub>pv</sub>(k+j) / P<sub>GMPP</sub> + λ(ΔU/ΔU<sub>max</sub>)<sup>2</sup>',
-    chartTitle: 'MPC 预测功率轨迹',
-    runLabel: '运行 MPC',
-    tracksBest: true,
-    iterationKey: 'mpcIterations',
   },
   fuzzy: {
     shortName: 'FLC',
@@ -481,18 +462,17 @@ const algorithmContent = {
   },
   dqn: { shortName: 'DQN', title: '深度Q网络(DQN)实现光伏MPPT', description: '本地教学演示以轻量化函数近似器表示离散电压动作的 Q 值，并用 ε-贪婪决策展示 DQN 的 MPPT 控制逻辑；不复现论文训练规模。', formulaLabelOne: '时序差分目标', formulaOne: 'y = r + γ max<sub>a′</sub>Q<sub>target</sub>(s′,a′)', formulaLabelTwo: '网络损失', formulaTwo: 'L(θ)=E[(y−Q(s,a;θ))<sup>2</sup>]', chartTitle: 'DQN 功率轨迹', runLabel: '运行 DQN', tracksBest: true, iterationKey: 'dqnIterations' },
   sac: { shortName: 'SAC', title: 'Soft Actor-Critic(SAC)实现光伏MPPT', description: '本地教学演示以轻量化连续策略近似 SAC 的功率寻优与熵探索权衡；不复现论文中的完整双 Q 网络和离线训练规模。', formulaLabelOne: '软状态值目标', formulaOne: 'y = r + γ[Q<sub>target</sub>(s′,a′) − α log π(a′|s′)]', formulaLabelTwo: '连续策略动作', formulaTwo: 'ΔU = ΔU<sub>max</sub> tanh(μ(s)+σ(s)ε)', chartTitle: 'SAC 连续控制功率轨迹', runLabel: '运行 SAC', tracksBest: true, iterationKey: 'sacIterations' },
-  pso_po: { shortName: 'PSO-P&O', title: '粒子群-P&O混合算法实现光伏MPPT', description: '先由 PSO 在多峰 P–U 曲线上定位高质量区域，再切换到小步长 P&O 完成局部跟踪并降低稳态振荡。', formulaLabelOne: '全局搜索', formulaOne: 'v<sub>i</sub>←wv<sub>i</sub>+c<sub>1</sub>r<sub>1</sub>(pbest<sub>i</sub>−x<sub>i</sub>)+c<sub>2</sub>r<sub>2</sub>(gbest−x<sub>i</sub>)', formulaLabelTwo: '局部精修', formulaTwo: 'U<sub>ref</sub>(k+1)=U<sub>ref</sub>(k)+ΔU<sub>PO</sub>·sgn(ΔPΔU)', chartTitle: 'PSO-P&O 功率轨迹', runLabel: '运行 PSO-P&O', population: true, tracksBest: true, iterationKey: 'psoPoIterations' },
-  ga_po: { shortName: 'GA-P&O', title: '遗传算法-P&O混合算法实现光伏MPPT', description: '遗传算法先执行全局种群搜索，随后把最优个体交给 P&O 进行局部精细跟踪。', formulaLabelOne: '遗传全局搜索', formulaOne: 'U<sub>c</sub>=λU<sub>p1</sub>+(1−λ)U<sub>p2</sub>+mutation', formulaLabelTwo: 'P&O 局部搜索', formulaTwo: 'U<sub>ref</sub>(k+1)=U<sub>ref</sub>(k)+ΔU<sub>PO</sub>·sgn(ΔPΔU)', chartTitle: 'GA-P&O 功率轨迹', runLabel: '运行 GA-P&O', population: true, tracksBest: true, iterationKey: 'gaPoIterations' },
-  ga_fuzzy: { shortName: 'GA-FLC', title: '遗传算法-模糊控制实现光伏MPPT', description: 'GA 优化模糊控制器的尺度与搜索起点，在线模糊推理再根据功率斜率及其变化量生成连续电压修正。', formulaLabelOne: 'GA 参数优化', formulaOne: '(K<sub>e</sub>,K<sub>ce</sub>,K<sub>u</sub>)* = arg max η<sub>MPPT</sub>', formulaLabelTwo: '模糊控制输出', formulaTwo: 'ΔU = Σ μ<sub>j</sub>z<sub>j</sub>/Σ μ<sub>j</sub>', chartTitle: 'GA-模糊控制功率轨迹', runLabel: '运行 GA-FLC', population: true, tracksBest: true, iterationKey: 'gaFuzzyIterations' },
-  ga_ann: { shortName: 'GA-BPNN', title: '遗传算法优化BP神经网络(GA-BPNN)实现光伏MPPT', description: '论文方法使用 GA 优化单隐藏层 BPNN 的神经元数量、激活函数与反向传播训练算法。本页按其 GA+BPNN 机制制作教学近似，并非论文离线网络的逐参数复现。', formulaLabelOne: 'GA 优化 BPNN', formulaOne: 'θ* = arg min<sub>θ∈GA</sub> MSE(t, f<sub>BPNN</sub>(E,ΔE;θ))', formulaLabelTwo: 'BPNN 引导搜索', formulaTwo: 'U<sub>i</sub>←(1−λ)U<sub>GA,i</sub>+λÛ<sub>BPNN</sub>', chartTitle: 'GA-BPNN 混合搜索功率轨迹', runLabel: '运行 GA-BPNN', population: true, tracksBest: true, entityPrefix: '个体', iterationKey: 'gaAnnIterations' },
+  pso_po: { shortName: 'PSO-P&O', title: '粒子群-P&O混合算法实现光伏MPPT', description: 'PSO 先进行可配置的 N 代全局搜索，再把当前全局最优工作点交给小步长 P&O 进行局部跟踪。', formulaLabelOne: 'N 代 PSO 搜索', formulaOne: 'k ≤ N: &nbsp; v<sub>i</sub>←wv<sub>i</sub>+c<sub>1</sub>r<sub>1</sub>(pbest<sub>i</sub>−x<sub>i</sub>)+c<sub>2</sub>r<sub>2</sub>(gbest−x<sub>i</sub>)', formulaLabelTwo: '切换到 P&O', formulaTwo: 'k &gt; N: &nbsp; U<sub>ref</sub>(k+1)=U<sub>ref</sub>(k)+ΔU<sub>PO</sub>·sgn(ΔPΔU)', chartTitle: 'PSO-P&O 功率轨迹', runLabel: '运行 PSO-P&O', population: true, tracksBest: true, iterationKey: 'psoPoIterations' },
+  ga_po: { shortName: 'GA-P&O', title: '遗传算法-P&O混合算法实现光伏MPPT', description: '按照论文机制先执行三代 GA 全局搜索，再以最优个体启动 P&O，并令扰动步长按 α 逐次衰减。', formulaLabelOne: '前三代 GA 搜索', formulaOne: 'k ≤ 3: &nbsp; U<sub>c</sub>=λU<sub>p1</sub>+(1−λ)U<sub>p2</sub>+mutation', formulaLabelTwo: '衰减步长 P&O', formulaTwo: 'k &gt; 3: &nbsp; ΔU<sub>k</sub>=αΔU<sub>k−1</sub>, &nbsp; α=0.9', chartTitle: 'GA-P&O 功率轨迹', runLabel: '运行 GA-P&O', population: true, tracksBest: true, iterationKey: 'gaPoIterations' },
+  ga_ann: { shortName: 'GA-BPNN', title: '遗传算法优化BP神经网络(GA-BPNN)实现光伏MPPT', description: '使用 GA 优化单隐藏层 BPNN 的神经元数量、激活函数与反向传播训练算法。', formulaLabelOne: 'GA 优化 BPNN', formulaOne: 'θ* = arg min<sub>θ∈GA</sub> MSE(t, f<sub>BPNN</sub>(E,ΔE;θ))', formulaLabelTwo: 'BPNN 引导搜索', formulaTwo: 'U<sub>i</sub>←(1−λ)U<sub>GA,i</sub>+λÛ<sub>BPNN</sub>', chartTitle: 'GA-BPNN 混合搜索功率轨迹', runLabel: '运行 GA-BPNN', population: true, tracksBest: true, entityPrefix: '个体', iterationKey: 'gaAnnIterations' },
 };
 
 const algorithmGroups = {
-  traditional: ['po', 'hc', 'vpo', 'cvt', 'focv', 'scan', 'esc', 'inc', 'vinc', 'jeinc', 'mpc'],
+  traditional: ['po', 'hc', 'vpo', 'cvt', 'focv', 'scan', 'esc', 'inc', 'vinc', 'jeinc'],
   fuzzy_logic: ['fuzzy'],
   metaheuristic: ['pso', 'sa', 'ga', 'cs', 'abc', 'afsa', 'de'],
   machine_learning: ['nn', 'svr', 'rf', 'rl', 'dqn', 'sac'],
-  hybrid: ['pso_po', 'ga_po', 'ga_fuzzy', 'ga_ann'],
+  hybrid: ['pso_po', 'ga_po', 'ga_ann'],
 };
 
 const algorithmLabels = {
@@ -506,7 +486,6 @@ const algorithmLabels = {
   inc: '电导增量法 (INC)',
   vinc: '变步长电导增量法 (VSS-INC)',
   jeinc: '跃变探索式电导增量法 (JEINC)',
-  mpc: '模型预测控制 (MPC)',
   pso: '粒子群算法 (PSO)',
   sa: '模拟退火算法 (SA)',
   ga: '遗传算法 (GA)',
@@ -515,7 +494,7 @@ const algorithmLabels = {
   afsa: '人工鱼群算法 (AFSA)',
   de: '差分进化算法 (DE)',
   dqn: '深度Q网络 (DQN)', sac: 'Soft Actor-Critic (SAC)',
-  pso_po: '粒子群-P&O', ga_po: '遗传算法-P&O', ga_fuzzy: '遗传算法-模糊控制', ga_ann: '遗传算法优化BP神经网络 (GA-BPNN)',
+  pso_po: 'PSO-P&O', ga_po: 'GA-P&O', ga_ann: '遗传算法优化BP神经网络 (GA-BPNN)',
   fuzzy: '模糊控制法 (FLC)',
   nn: 'BP神经网络 (BPNN)',
   svr: '支持向量回归 (SVR)',
@@ -534,7 +513,6 @@ const algorithmLabelsEn = {
   inc: 'Incremental Conductance (INC)',
   vinc: 'Variable-Step INC (VSS-INC)',
   jeinc: 'Jump-Exploration INC (JEINC)',
-  mpc: 'Model Predictive Control (MPC)',
   pso: 'Particle Swarm Optimization (PSO)',
   sa: 'Simulated Annealing (SA)',
   ga: 'Genetic Algorithm (GA)',
@@ -546,7 +524,6 @@ const algorithmLabelsEn = {
   sac: 'Soft Actor-Critic (SAC)',
   pso_po: 'Particle Swarm-P&O',
   ga_po: 'Genetic Algorithm-P&O',
-  ga_fuzzy: 'Genetic Algorithm-Fuzzy Control',
   ga_ann: 'GA-Optimized BPNN',
   fuzzy: 'Fuzzy Logic Control (FLC)',
   nn: 'Backpropagation Neural Network (BPNN)',
@@ -565,7 +542,7 @@ const parameterGuideUi = {
     uniform: '均匀分布',
     close: '关闭参数解释',
     references: '参考文献',
-    disclaimer: '提示：参数之间存在耦合，单独改变某一参数得到的趋势不一定在所有取值范围内保持不变。建议每次只改变一个参数，并比较收敛速度、稳态振荡和是否到达 GMPP。',
+    disclaimer: '提示：参数之间存在耦合，单独改变某一参数得到的趋势不一定在所有取值范围内保持不变。说明中标注“网页教学实现”的项目不是引文论文报告的原始参数；其作用仅对应本页近似演示。建议每次只改变一个参数，并比较收敛速度、稳态振荡和是否到达 GMPP。',
   },
   en: {
     titleSuffix: 'Parameter Guide',
@@ -576,7 +553,7 @@ const parameterGuideUi = {
     uniform: 'Uniform',
     close: 'Close parameter guide',
     references: 'References',
-    disclaimer: 'Note: Parameters are coupled, so a one-parameter trend may not hold over the entire range. Change one parameter at a time and compare convergence speed, steady-state oscillation, and whether the GMPP is reached.',
+    disclaimer: 'Note: Parameters are coupled, so a one-parameter trend may not hold over the entire range. Items marked “website teaching implementation” are not original parameters reported by the cited paper; they apply only to this page’s approximation. Change one parameter at a time and compare convergence speed, steady-state oscillation, and whether the GMPP is reached.',
   },
 };
 
@@ -591,6 +568,7 @@ const parameterGuideReferences = {
   vpo: [
     { citation: 'F. A. O. Aashoor and F. V. P. Robinson, “A variable step size perturb and observe algorithm for photovoltaic maximum power point tracking,” in Proc. 47th Int. Universities Power Engineering Conf. (UPEC), London, U.K., 2012, pp. 1–6, doi: 10.1109/UPEC.2012.6398612.', url: 'https://doi.org/10.1109/UPEC.2012.6398612' },
     { citation: 'N. Femia, G. Petrone, G. Spagnuolo, and M. Vitelli, “Optimization of perturb and observe maximum power point tracking method,” IEEE Trans. Power Electron., vol. 20, no. 4, pp. 963–973, Jul. 2005, doi: 10.1109/TPEL.2005.850975.', url: 'https://doi.org/10.1109/TPEL.2005.850975' },
+    { citation: 'H. Bahri and A. Harrag, “Variable step size P&O MPPT controller to improve static and dynamic PV system performances,” J. Adv. Eng. Comput., vol. 2, no. 2, Jun. 2018, doi: 10.25073/jaec.201822.94.', url: 'https://doi.org/10.25073/jaec.201822.94' },
   ],
   cvt: [
     { citation: 'T. Esram and P. L. Chapman, “Comparison of photovoltaic array maximum power point tracking techniques,” IEEE Trans. Energy Convers., vol. 22, no. 2, pp. 439–449, Jun. 2007, doi: 10.1109/TEC.2006.874230.', url: 'https://doi.org/10.1109/TEC.2006.874230' },
@@ -603,6 +581,7 @@ const parameterGuideReferences = {
   ],
   esc: [
     { citation: 'R. Leyva, C. Alonso, I. Queinnec, A. Cid-Pastor, D. Lagrange, and L. Martínez-Salamero, “MPPT of photovoltaic systems using extremum-seeking control,” IEEE Trans. Aerosp. Electron. Syst., vol. 42, no. 1, pp. 249–258, Jan. 2006, doi: 10.1109/TAES.2006.1603420.', url: 'https://doi.org/10.1109/TAES.2006.1603420' },
+    { citation: 'R. Leyva, C. Olalla, H. Zazo, C. Cabal, A. Cid-Pastor, I. Queinnec, and C. Alonso, “MPPT based on sinusoidal extremum-seeking control in PV generation,” Int. J. Photoenergy, vol. 2012, Art. no. 672765, 2012, doi: 10.1155/2012/672765.', url: 'https://doi.org/10.1155/2012/672765' },
   ],
   inc: [
     { citation: 'T. Esram and P. L. Chapman, “Comparison of photovoltaic array maximum power point tracking techniques,” IEEE Trans. Energy Convers., vol. 22, no. 2, pp. 439–449, Jun. 2007, doi: 10.1109/TEC.2006.874230.', url: 'https://doi.org/10.1109/TEC.2006.874230' },
@@ -610,19 +589,20 @@ const parameterGuideReferences = {
   ],
   vinc: [
     { citation: 'F. Liu, S. Duan, F. Liu, B. Liu, and Y. Kang, “A variable step size INC MPPT method for PV systems,” IEEE Trans. Ind. Electron., vol. 55, no. 7, pp. 2622–2628, Jul. 2008, doi: 10.1109/TIE.2008.920550.', url: 'https://doi.org/10.1109/TIE.2008.920550' },
+    { citation: 'M.-T. Chuang, Y.-H. Liu, and S.-P. Ye, “A novel variable step size incremental conductance method with an adaptive scaling factor,” Appl. Sci., vol. 10, no. 15, Art. no. 5214, Jul. 2020, doi: 10.3390/app10155214.', url: 'https://doi.org/10.3390/app10155214' },
+    { citation: 'I. Owusu-Nyarko, M. A. Elgenedy, I. Abdelsalam, and K. H. Ahmed, “Modified variable step-size incremental conductance MPPT technique for photovoltaic systems,” Electronics, vol. 10, no. 19, Art. no. 2331, Sep. 2021, doi: 10.3390/electronics10192331.', url: 'https://doi.org/10.3390/electronics10192331' },
   ],
   jeinc: [
-    { citation: '王艺博, 苏高民, and 邱榕鑫, “基于跃变探索式电导增量法的光伏阵列全局最大功率点跟踪控制研究,” 电气工程学报, vol. 19, no. 1, pp. 351–357, Mar. 2024, doi: 10.11985/2024.01.038.', url: './assets/references/jeinc-2024.pdf' },
-  ],
-  mpc: [
-    { citation: 'S. Kouro, P. Cortés, R. Vargas, U. Ammann, and J. Rodríguez, “Model predictive control—A simple and powerful method to control power converters,” IEEE Trans. Ind. Electron., vol. 56, no. 6, pp. 1826–1838, Jun. 2009, doi: 10.1109/TIE.2008.2008349.', url: 'https://doi.org/10.1109/TIE.2008.2008349' },
+    { citation: '王艺博, 苏高民, and 邱榕鑫, “基于跃变探索式电导增量法的光伏阵列全局最大功率点跟踪控制研究,” 电气工程学报, vol. 19, no. 1, pp. 351–357, Mar. 2024, doi: 10.11985/2024.01.038.', url: 'https://www.jgcm.ac.cn/dqgcxb/cn/article/id/dqgcxb-26971' },
   ],
   fuzzy: [
     { citation: 'R. Rahmani, M. Seyedmahmoudian, S. Mekhilef, and R. Yusof, “Implementation of fuzzy logic maximum power point tracking controller for photovoltaic system,” Am. J. Appl. Sci., vol. 10, no. 3, pp. 209–218, 2013, doi: 10.3844/ajassp.2013.209.218.', url: 'https://doi.org/10.3844/ajassp.2013.209.218' },
+    { citation: 'A. Jouda, F. Elyes, A. Rabhi, and M. Abdelkader, “Optimization of scaling factors of fuzzy–MPPT controller for stand-alone photovoltaic system by particle swarm optimization,” Energy Procedia, vol. 111, pp. 954–963, Mar. 2017, doi: 10.1016/j.egypro.2017.03.258.', url: 'https://doi.org/10.1016/j.egypro.2017.03.258' },
   ],
   pso: [
     { citation: 'Y.-H. Liu, S.-C. Huang, J.-W. Huang, and W.-C. Liang, “A particle swarm optimization-based maximum power point tracking algorithm for PV systems operating under partially shaded conditions,” IEEE Trans. Energy Convers., vol. 27, no. 4, pp. 1027–1035, Dec. 2012, doi: 10.1109/TEC.2012.2219533.', url: 'https://doi.org/10.1109/TEC.2012.2219533' },
     { citation: 'J. Kennedy and R. Eberhart, “Particle swarm optimization,” in Proc. IEEE Int. Conf. Neural Networks, Perth, WA, Australia, 1995, vol. 4, pp. 1942–1948, doi: 10.1109/ICNN.1995.488968.', url: 'https://doi.org/10.1109/ICNN.1995.488968' },
+    { citation: 'A. O. Baatiah, A. M. Eltamaly, and M. A. Alotaibi, “Improving photovoltaic MPPT performance through PSO dynamic swarm size reduction,” Energies, vol. 16, no. 18, Art. no. 6433, Sep. 2023, doi: 10.3390/en16186433.', url: 'https://doi.org/10.3390/en16186433' },
   ],
   sa: [
     { citation: 'S. Kirkpatrick, C. D. Gelatt, Jr., and M. P. Vecchi, “Optimization by simulated annealing,” Science, vol. 220, no. 4598, pp. 671–680, May 1983, doi: 10.1126/science.220.4598.671.', url: 'https://doi.org/10.1126/science.220.4598.671' },
@@ -635,6 +615,7 @@ const parameterGuideReferences = {
   ],
   abc: [
     { citation: 'D. Karaboga and B. Basturk, “A powerful and efficient algorithm for numerical function optimization: Artificial bee colony (ABC) algorithm,” J. Global Optim., vol. 39, no. 3, pp. 459–471, Nov. 2007, doi: 10.1007/s10898-007-9149-x.', url: 'https://doi.org/10.1007/s10898-007-9149-x' },
+    { citation: 'G. Zhu and S. Kwong, “Gbest-guided artificial bee colony algorithm for numerical function optimization,” Appl. Math. Comput., vol. 217, no. 7, pp. 3166–3173, Dec. 2010, doi: 10.1016/j.amc.2010.08.049.', url: 'https://doi.org/10.1016/j.amc.2010.08.049' },
   ],
   afsa: [
     { citation: 'X. L. Li, Z. J. Shao, and J. X. Qian, “An optimizing method based on autonomous animats: Fish-swarm algorithm,” Syst. Eng.—Theory Pract., vol. 22, no. 11, pp. 32–38, Nov. 2002, doi: 10.12011/1000-6788(2002)11-32.', url: 'https://doi.org/10.12011/1000-6788(2002)11-32' },
@@ -644,21 +625,27 @@ const parameterGuideReferences = {
   ],
   nn: [
     { citation: 'D. E. Rumelhart, G. E. Hinton, and R. J. Williams, “Learning representations by back-propagating errors,” Nature, vol. 323, no. 6088, pp. 533–536, Oct. 1986, doi: 10.1038/323533a0.', url: 'https://doi.org/10.1038/323533a0' },
+    { citation: 'M. Veerachary, T. Senjyu, and K. Uezato, “Neural-network-based maximum-power-point tracking of coupled-inductor interleaved-boost-converter-supplied PV system using fuzzy controller,” IEEE Trans. Ind. Electron., vol. 50, no. 4, pp. 749–758, Aug. 2003, doi: 10.1109/TIE.2003.814762.', url: 'https://doi.org/10.1109/TIE.2003.814762' },
   ],
   svr: [
     { citation: 'A. J. Smola and B. Schölkopf, “A tutorial on support vector regression,” Stat. Comput., vol. 14, no. 3, pp. 199–222, Aug. 2004, doi: 10.1023/B:STCO.0000035301.49549.88.', url: 'https://doi.org/10.1023/B:STCO.0000035301.49549.88' },
+    { citation: 'B. Yu, A. G. Abo-Khalil, J. So, and G. Yu, “Support vector regression based maximum power point tracking for PV grid-connected system,” in Proc. 34th IEEE Photovoltaic Specialists Conf. (PVSC), Philadelphia, PA, USA, 2009, pp. 001374–001379, doi: 10.1109/PVSC.2009.5411472.', url: 'https://doi.org/10.1109/PVSC.2009.5411472' },
   ],
   rf: [
     { citation: 'L. Breiman, “Random forests,” Mach. Learn., vol. 45, no. 1, pp. 5–32, Oct. 2001, doi: 10.1023/A:1010933404324.', url: 'https://doi.org/10.1023/A:1010933404324' },
+    { citation: 'H. Shareef, A. H. Mutlag, and A. Mohamed, “Random forest-based approach for maximum power point tracking of photovoltaic systems operating under actual environmental conditions,” Comput. Intell. Neurosci., vol. 2017, Art. no. 1673864, 2017, doi: 10.1155/2017/1673864.', url: 'https://doi.org/10.1155/2017/1673864' },
   ],
   rl: [
     { citation: 'C. J. C. H. Watkins and P. Dayan, “Q-learning,” Mach. Learn., vol. 8, nos. 3–4, pp. 279–292, May 1992, doi: 10.1007/BF00992698.', url: 'https://doi.org/10.1007/BF00992698' },
+    { citation: 'R. C. Hsu, C.-T. Liu, W.-Y. Chen, H.-I Hsieh, and H.-L. Wang, “A reinforcement learning-based maximum power point tracking method for photovoltaic array,” Int. J. Photoenergy, vol. 2015, Art. no. 496401, 2015, doi: 10.1155/2015/496401.', url: 'https://doi.org/10.1155/2015/496401' },
   ],
   dqn: [{ citation: 'F. R. Jiménez et al., “Deep reinforcement learning using deep-Q-network for global maximum power point tracking: Design and experiments in real photovoltaic systems,” Heliyon, vol. 10, no. 21, Art. no. e37974, Nov. 2024, doi: 10.1016/j.heliyon.2024.e37974.', url: 'https://doi.org/10.1016/j.heliyon.2024.e37974' }],
   sac: [{ citation: 'S. E. Nwachukwu, K. A. Folly, and K. O. Awodele, “Soft actor-critic-based MPPT control of solar PV systems under partial shading conditions,” IEEE Open Access J. Power Energy, vol. 12, pp. 194–208, 2025, doi: 10.1109/OAJPE.2025.3560626.', url: 'https://doi.org/10.1109/OAJPE.2025.3560626' }],
-  pso_po: [{ citation: 'M. A. M. Ramli et al., “A modified particle swarm optimization for efficient maximum power point tracking under partial shading condition,” IEEE Trans. Sustain. Energy, vol. 14, no. 3, pp. 1822–1834, Jul. 2023, doi: 10.1109/TSTE.2023.3250710.', url: 'https://doi.org/10.1109/TSTE.2023.3250710' }],
-  ga_po: [{ citation: 'S. Daraban, D. Petreus, and C. Morel, “A novel MPPT algorithm based on a modified genetic algorithm specialized on tracking the global maximum power point in photovoltaic systems affected by partial shading,” Energy, vol. 74, pp. 374–388, Sep. 2014, doi: 10.1016/j.energy.2014.07.001.', url: 'https://doi.org/10.1016/j.energy.2014.07.001' }],
-  ga_fuzzy: [{ citation: 'C. Larbes, S. M. Aït Cheikh, T. Obeidi, and A. Zerguerras, “Genetic algorithms optimized fuzzy logic control for the maximum power point tracking in photovoltaic system,” Renew. Energy, vol. 34, no. 10, pp. 2093–2100, Oct. 2009, doi: 10.1016/j.renene.2009.01.006.', url: 'https://doi.org/10.1016/j.renene.2009.01.006' }],
+  pso_po: [
+    { citation: 'K. Sundareswaran, V. Vignesh Kumar, and S. Palani, “Application of a combined particle swarm optimization and perturb and observe method for MPPT in PV systems under partial shading conditions,” Renew. Energy, vol. 75, pp. 308–317, Mar. 2015, doi: 10.1016/j.renene.2014.09.044.', url: 'https://doi.org/10.1016/j.renene.2014.09.044' },
+    { citation: 'K. Sundareswaran, V. Vigneshkumar, and S. Palani, “Development of a hybrid genetic algorithm/perturb and observe algorithm for maximum power point tracking in photovoltaic systems under non-uniform insolation,” IET Renew. Power Gener., vol. 9, no. 7, pp. 757–765, Sep. 2015, doi: 10.1049/iet-rpg.2014.0333.', url: 'https://doi.org/10.1049/iet-rpg.2014.0333' },
+  ],
+  ga_po: [{ citation: 'K. Sundareswaran, V. Vigneshkumar, and S. Palani, “Development of a hybrid genetic algorithm/perturb and observe algorithm for maximum power point tracking in photovoltaic systems under non-uniform insolation,” IET Renew. Power Gener., vol. 9, no. 7, pp. 757–765, Sep. 2015, doi: 10.1049/iet-rpg.2014.0333.', url: 'https://doi.org/10.1049/iet-rpg.2014.0333' }],
   ga_ann: [{ citation: 'M. N. Ali, K. Mahmoud, M. Lehtonen, and M. M. F. Darwish, “Promising MPPT methods combining metaheuristic, fuzzy-logic and ANN techniques for grid-connected photovoltaic,” Sensors, vol. 21, no. 4, Art. no. 1244, Feb. 2021, doi: 10.3390/s21041244.', url: 'https://doi.org/10.3390/s21041244' }],
 };
 
@@ -784,17 +771,9 @@ const parameterGuideProfiles = {
     zh: ['巢穴被发现并用新随机候选点替换的概率。', '持续注入多样性、利于跳出局部峰，但收敛后仍会出现新跳点。', '群体更稳定；设为 0 可避免随机重启，但全局探索能力降低。'],
     en: ['Probability that a nest is discovered and replaced by a new random candidate.', 'Continually injects diversity and aids local-peak escape, but creates new jumps even after convergence.', 'Stabilizes the population; setting it to zero prevents random restarts but weakens global exploration.'],
   },
-  compensation: {
-    zh: ['根据前后斜率变化调节 VSS-INC 步长衰减程度的系数。', '对斜率变化更敏感、步长收缩或补偿更强，可能更快抑制峰值附近振荡。', '步长变化更接近基础 INC，响应平缓但自适应效果减弱。'],
-    en: ['Factor controlling how strongly successive slope changes attenuate the VSS-INC step.', 'Makes the step more sensitive to slope change and can suppress near-peak oscillation faster.', 'Makes behavior closer to basic INC, with smoother but weaker adaptation.'],
-  },
-  horizon: {
-    zh: ['MPC 评价候选控制动作时向未来预测的步数。', '考虑更长暂态、决策更具前瞻性，但计算量增加且模型误差累积。', '计算更快、对模型误差不敏感，但可能只优化短期功率。'],
-    en: ['Number of future steps evaluated by MPC for each candidate control action.', 'Provides more foresight over transients, but increases computation and accumulated model error.', 'Reduces computation and model-error exposure, but may optimize only short-term power.'],
-  },
-  penalty: {
-    zh: ['MPC 代价函数中对电压控制增量的惩罚权重。', '动作更保守、暂态和振荡减小，但跟踪变慢。', '更重视快速提高功率，但电压跳变和超调可能增大。'],
-    en: ['Weight penalizing voltage-control increments in the MPC cost function.', 'Makes actions more conservative and reduces transients and oscillation, but slows tracking.', 'Prioritizes rapid power gain, but may increase voltage jumps and overshoot.'],
+  slopeScalingFactor: {
+    zh: ['VSS-INC 中将 P–U 曲线斜率 |ΔP/ΔU| 换算为电压扰动步长的缩放因子 N，步长随后受最小值与最大值限幅。', '远离 MPP 时移动更快，但过大可能造成超调与稳态振荡。', '扰动更细、MPP 附近更平稳，但动态跟踪速度降低。'],
+    en: ['Scaling factor N that converts the P–V slope |ΔP/ΔU| into the VSS-INC voltage perturbation; the result is bounded by the minimum and maximum steps.', 'Moves faster away from the MPP, but an excessive value may cause overshoot and steady-state oscillation.', 'Produces finer, steadier motion near the MPP, but slows dynamic tracking.'],
   },
   fuzzyErrorGain: {
     zh: ['把 P–U 斜率误差映射到模糊论域的缩放系数。', '相同误差会触发更强的规则响应，跟踪更快但易饱和或振荡。', '控制更柔和，但可能对小斜率反应不足。'],
@@ -892,6 +871,63 @@ const parameterGuideProfiles = {
     zh: ['Q-learning 的“升压/降压”动作一次改变的电压量。', '到达目标区域更快，但状态间跳跃较粗、可能越过窄峰。', '动作更精细、最终误差较小，但需要更多决策步。'],
     en: ['Voltage change produced by one Q-learning increase/decrease action.', 'Reaches the target region faster, but makes state transitions coarse and may skip narrow peaks.', 'Improves final resolution, but requires more decisions.'],
   },
+  outputSlewLimit: {
+    zh: ['网页教学实现中的输出电压变化限幅，不是所引 BPNN、SVR 或 RF 论文的训练超参数。', '响应更快，但预测参考值突变时的超调和暂态功率损失可能增大。', '输出更平滑，但到达预测 MPP 电压所需时间增加。'],
+    en: ['Output-voltage slew limit in the website teaching implementation; it is not a training hyperparameter reported by the cited BPNN, SVR, or RF papers.', 'Speeds the response, but may increase overshoot and transient power loss after a large reference change.', 'Smooths the output, but takes longer to reach the predicted MPP voltage.'],
+  },
+  abandonLimit: {
+    zh: ['ABC 食物源连续未改进后被侦察蜂放弃并重新随机生成前允许的周期数。', '减少随机重启、加强局部开发，但停滞在局部峰的时间可能变长。', '更频繁注入新候选、利于逃离局部峰，但可能过早丢弃仍有潜力的解。'],
+    en: ['Number of unsuccessful ABC cycles allowed before a food source is abandoned and regenerated by a scout bee.', 'Reduces random restarts and emphasizes exploitation, but may prolong local-peak stagnation.', 'Injects new candidates more often and helps escape local peaks, but may discard promising sources too early.'],
+  },
+  replayCapacity: {
+    zh: ['DQN 经验回放缓冲区可保存的状态转移样本数；它不是训练回合数。', '样本相关性通常降低、覆盖更广，但内存占用和旧经验比例增加。', '内存与采样开销减小，但训练批次更相关、策略更新可能更不稳定。'],
+    en: ['Number of state-transition samples retained by the DQN experience-replay buffer; it is not an episode count.', 'Usually broadens experience coverage and reduces sample correlation, but uses more memory and retains more old experience.', 'Reduces memory and sampling cost, but increases batch correlation and may destabilize learning.'],
+  },
+  dqnLearningRate: {
+    zh: ['DQN 优化器更新神经网络权重的步长。引文论文使用 Adam 和 0.001；本页默认值为轻量演示调参，不是论文逐参数复现。', '权重更新更快，但过大时损失和策略可能振荡或发散。', '训练更平滑，但需要更多更新才能收敛。'],
+    en: ['Step size used by the DQN optimizer to update network weights. The cited paper uses Adam with 0.001; this page’s default is tuned for the lightweight demo rather than a parameter-for-parameter reproduction.', 'Updates weights faster, but an excessive value may make the loss and policy oscillate or diverge.', 'Makes training smoother, but requires more updates to converge.'],
+  },
+  dqnActionStep: {
+    zh: ['网页把引文论文的离散占空比增量动作等效映射为升压/降压的电压参考步长；单位 V 属于本页教学实现。', '移动更快，但动作离散化更粗、可能越过窄峰。', '动作更精细、最终误差较小，但需要更多决策步。'],
+    en: ['The website maps the cited paper’s discrete duty-cycle increments to an equivalent voltage-reference step; the V unit belongs to this teaching implementation.', 'Moves faster, but coarsens action discretization and may skip a narrow peak.', 'Improves final resolution, but requires more decisions.'],
+  },
+  actorLearningRate: {
+    zh: ['SAC Actor 网络优化器的学习率。引文论文采用 0.0001，并指出较大值虽可能加快收敛但会增加不稳定风险；本页默认值为轻量演示调参。', '策略更新更快，但过大时训练易振荡或不稳定。', '策略更新更平滑，但收敛所需迭代增加。'],
+    en: ['Learning rate of the SAC actor-network optimizer. The cited paper uses 0.0001 and notes that a larger value may converge faster but risks instability; this page’s default is tuned for the lightweight demo.', 'Updates the policy faster, but an excessive value can cause oscillation or instability.', 'Produces smoother policy updates, but requires more iterations to converge.'],
+  },
+  entropyTemperature: {
+    zh: ['SAC 熵温度 α，用于平衡随机探索与奖励利用；它不是 ε-greedy 探索概率。', '策略更随机、探索更强，但过大时会削弱按奖励选择动作的能力。', '策略更确定、利用更强，但可能较早陷入局部策略。'],
+    en: ['SAC entropy temperature α, which balances stochastic exploration against reward exploitation; it is not an epsilon-greedy probability.', 'Makes the policy more stochastic and exploratory, but an excessive value weakens reward-directed action selection.', 'Makes the policy more deterministic and exploitative, but may cause early local-policy trapping.'],
+  },
+  sacActionLimit: {
+    zh: ['网页把引文论文连续占空比动作范围 [-0.1, 0.1] 等效映射为电压参考的最大连续改变量；单位 V 和默认值属于本页教学实现。', '响应更快、跨峰能力增强，但超调和暂态波动可能增大。', '动作更平滑、局部调整更细，但全局移动变慢。'],
+    en: ['The website maps the cited paper’s continuous duty-cycle range [-0.1, 0.1] to a maximum voltage-reference change; the V unit and default belong to this teaching implementation.', 'Speeds response and peak crossing, but may increase overshoot and transients.', 'Makes actions smoother and more precise locally, but slows global movement.'],
+  },
+  hybridSwitchGenerations: {
+    zh: ['PSO 全局搜索执行的代数 N；完成第 N 代后，当前全局最优点作为 P&O 的初始工作点。', '增加多峰全局搜索时间、通常提高全局峰覆盖，但留给 P&O 精调的迭代减少。', '更早切换到 P&O、局部调整更快，但 PSO 尚未定位全局峰时可能锁定局部峰。'],
+    en: ['Number N of PSO global-search generations; after generation N, the current global best seeds P&O.', 'Extends multimodal global search and usually improves peak coverage, but leaves fewer iterations for P&O refinement.', 'Switches to P&O sooner, but may lock onto a local peak before PSO locates the global one.'],
+  },
+  decayFactor: {
+    zh: ['GA-P&O 在局部阶段按 ΔU(k)=αΔU(k−1) 衰减扰动步长的系数；引文论文采用 α=0.9。', '衰减更慢，能维持较强跟踪能力，但 MPP 附近振荡可能更大。', '衰减更快，稳态扰动更小，但过早缩小步长可能降低动态响应。'],
+    en: ['Factor α in the GA-P&O local-stage update ΔU(k)=αΔU(k−1); the cited paper uses α=0.9.', 'Decays more slowly and preserves tracking authority, but may increase oscillation near the MPP.', 'Decays faster and reduces steady-state perturbation, but may weaken dynamic response too early.'],
+  },
+  gaAnnPopulation: {
+    zh: ['网页教学实现中的候选电压数量。引文论文的 GA 个体表示 BPNN 神经元数量、激活函数和反向传播训练算法组合，不是 PV 电压。', '网页候选电压覆盖更充分，但每轮采样更多；不代表论文离线网络候选数。', '网页运行更快，但多峰曲线覆盖下降。'],
+    en: ['Number of candidate voltages in the website teaching implementation. In the cited paper, GA individuals encode combinations of BPNN neuron count, activation function, and backpropagation training algorithm, not PV voltage.', 'Improves voltage-space coverage on this page, but needs more samples; it does not represent the paper’s offline network-candidate count.', 'Runs faster on this page, but reduces multimodal coverage.'],
+  },
+  gaAnnMutation: {
+    zh: ['网页教学实现中候选电压发生随机变异的概率；引文论文的变异对象是 BPNN 结构/训练配置，因此概率概念相同但编码对象不同。', '网页探索与跨峰能力增强，但轨迹随机性和暂态跌落增加。', '网页轨迹更稳定，但更容易早熟聚集。'],
+    en: ['Probability of mutating a candidate voltage in the website teaching implementation. The cited paper mutates BPNN architecture/training configurations, so the probability concept matches but the encoded object differs.', 'Strengthens exploration and peak crossing on this page, but increases trajectory randomness and transients.', 'Stabilizes the page’s trajectory, but increases premature convergence risk.'],
+  },
+  gaAnnGuide: {
+    zh: ['网页教学实现中 BPNN 预测位置参与候选电压更新的融合权重；引文论文没有定义该在线融合权重。', '更依赖网络预测、收敛可能加快，但预测偏差会更直接传入搜索。', '更多依赖 GA 群体搜索、对预测误差更稳健，但可能收敛较慢。'],
+    en: ['Fusion weight of the BPNN-predicted position in this website’s online candidate update; the cited paper does not define this online weight.', 'Relies more on the network prediction and may converge faster, but passes prediction bias more directly into the search.', 'Relies more on GA population search and is more robust to prediction error, but may converge more slowly.'],
+  },
+  gaAnnInitialDistribution: {
+    mode: 'choice',
+    zh: ['网页教学实现中候选电压的初始布点方式；引文论文初始化的是 BPNN 结构/训练配置候选，不是 PV 电压。', '随机电压布点提高网页演示的多样性，但运行间差异增大。', '均匀电压布点便于复现并覆盖全范围，但不等同于论文中的 GA 编码初始化。'],
+    en: ['Initial placement of candidate voltages in the website teaching implementation; the cited paper initializes BPNN architecture/training candidates rather than PV voltages.', 'Random voltage placement increases diversity in the demo, but also run-to-run variation.', 'Uniform voltage placement is reproducible and covers the range, but it is not the paper’s GA encoding initialization.'],
+  },
 };
 
 const parameterGuideProfileByInput = {
@@ -908,22 +944,20 @@ const parameterGuideProfileByInput = {
   gaPopulation: 'populationSize', gaCrossover: 'crossover', gaMutation: 'mutation', gaMutationSpan: 'mutationSpan', gaInitialDistribution: 'initialDistribution',
   csNests: 'populationSize', csLevyScale: 'levyScale', csDiscovery: 'discovery', csInitialDistribution: 'initialDistribution',
   incStep: 'fixedVoltageStep', incTolerance: 'tolerance', incMaxVelocity: 'maxVelocity',
-  vincMinStep: 'minimumStep', vincMaxStep: 'maximumStep', vincCompensation: 'compensation', vincTolerance: 'tolerance', vincMaxVelocity: 'maxVelocity',
-  mpcStep: 'fixedVoltageStep', mpcHorizon: 'horizon', mpcPenalty: 'penalty', mpcMaxVelocity: 'maxVelocity',
+  vincMinStep: 'minimumStep', vincMaxStep: 'maximumStep', vincScalingFactor: 'slopeScalingFactor', vincTolerance: 'tolerance', vincMaxVelocity: 'maxVelocity',
   fuzzyStep: 'maximumStep', fuzzyErrorGain: 'fuzzyErrorGain', fuzzyDeltaGain: 'fuzzyDeltaGain',
-  abcPopulation: 'populationSize', abcPhi: 'neighborhoodFactor', abcBestGain: 'bestGuidance', abcAbandonLimit: 'episodes', abcInitialDistribution: 'initialDistribution',
+  abcPopulation: 'populationSize', abcPhi: 'neighborhoodFactor', abcBestGain: 'bestGuidance', abcAbandonLimit: 'abandonLimit', abcInitialDistribution: 'initialDistribution',
   afsaPopulation: 'populationSize', afsaVisual: 'visualRange', afsaStep: 'fishStep', afsaCrowd: 'crowding', afsaTry: 'tryNumber', afsaInitialDistribution: 'initialDistribution',
   dePopulation: 'populationSize', deFactor: 'differentialFactor', deCrossover: 'deCrossover', deInitialDistribution: 'initialDistribution',
-  nnHidden: 'hiddenNeurons', nnLearningRate: 'learningRate', nnEpochs: 'epochs', nnMaxVelocity: 'maxVelocity',
-  svrPenalty: 'svrPenalty', svrEpsilon: 'svrEpsilon', svrGamma: 'svrGamma', svrMaxVelocity: 'maxVelocity',
-  rfTrees: 'treeCount', rfDepth: 'treeDepth', rfSampleRatio: 'sampleRatio', rfMaxVelocity: 'maxVelocity',
+  nnHidden: 'hiddenNeurons', nnLearningRate: 'learningRate', nnEpochs: 'epochs', nnMaxVelocity: 'outputSlewLimit',
+  svrPenalty: 'svrPenalty', svrEpsilon: 'svrEpsilon', svrGamma: 'svrGamma', svrMaxVelocity: 'outputSlewLimit',
+  rfTrees: 'treeCount', rfDepth: 'treeDepth', rfSampleRatio: 'sampleRatio', rfMaxVelocity: 'outputSlewLimit',
   rlLearningRate: 'rlLearningRate', rlDiscount: 'discount', rlExploration: 'exploration', rlEpisodes: 'episodes', rlStep: 'actionStep',
-  dqnLearningRate: 'rlLearningRate', dqnDiscount: 'discount', dqnExploration: 'exploration', dqnReplay: 'episodes', dqnStep: 'actionStep',
-  sacActorRate: 'rlLearningRate', sacDiscount: 'discount', sacEntropy: 'exploration', sacMaxAction: 'maximumStep',
-  psoPoPopulation: 'populationSize', psoPoSwitch: 'sampleRatio', psoPoStep: 'fixedVoltageStep',
-  psoPoInitialDistribution: 'initialDistribution', gaPoPopulation: 'populationSize', gaPoMutation: 'mutation', gaPoStep: 'fixedVoltageStep', gaPoInitialDistribution: 'initialDistribution',
-  gaFuzzyPopulation: 'populationSize', gaFuzzyStep: 'maximumStep', gaFuzzyGain: 'fuzzyErrorGain', gaFuzzyInitialDistribution: 'initialDistribution',
-  gaAnnPopulation: 'populationSize', gaAnnMutation: 'mutation', gaAnnGuide: 'bestGuidance', gaAnnInitialDistribution: 'initialDistribution',
+  dqnLearningRate: 'dqnLearningRate', dqnDiscount: 'discount', dqnExploration: 'exploration', dqnReplay: 'replayCapacity', dqnStep: 'dqnActionStep',
+  sacActorRate: 'actorLearningRate', sacDiscount: 'discount', sacEntropy: 'entropyTemperature', sacMaxAction: 'sacActionLimit',
+  psoPoPopulation: 'populationSize', psoPoSwitchGeneration: 'hybridSwitchGenerations', psoPoStep: 'fixedVoltageStep',
+  psoPoInitialDistribution: 'initialDistribution', gaPoPopulation: 'populationSize', gaPoMutation: 'mutation', gaPoStep: 'fixedVoltageStep', gaPoAlpha: 'decayFactor', gaPoInitialDistribution: 'initialDistribution',
+  gaAnnPopulation: 'gaAnnPopulation', gaAnnMutation: 'gaAnnMutation', gaAnnGuide: 'gaAnnGuide', gaAnnInitialDistribution: 'gaAnnInitialDistribution',
 };
 
 const algorithmContentEn = {
@@ -940,8 +974,7 @@ const algorithmContentEn = {
   ga: { title: 'Photovoltaic MPPT Using a Genetic Algorithm (GA)', description: 'GA encodes operating voltages as individuals and improves the population through selection, crossover, and mutation.', formulaLabelOne: 'Arithmetic crossover', formulaLabelTwo: 'Gaussian mutation', chartTitle: 'Genetic-Population Power Trajectories', runLabel: 'Run GA' },
   cs: { title: 'Photovoltaic MPPT Using Cuckoo Search (CS)', description: 'Cuckoo Search uses Lévy flights for mixed long- and short-range exploration and replaces nests according to a discovery probability.', formulaLabelOne: 'Lévy flight', formulaLabelTwo: 'Nest replacement', chartTitle: 'Nest Power Trajectories', runLabel: 'Run CS' },
   inc: { title: 'Photovoltaic MPPT Using Incremental Conductance (INC)', description: 'INC compares incremental and instantaneous conductance to determine whether the operating point lies to the left or right of the MPP.', formulaLabelOne: 'Maximum-power criterion', formulaLabelTwo: 'Voltage adjustment', chartTitle: 'INC Operating-Point Power', runLabel: 'Run INC' },
-  vinc: { title: 'Photovoltaic MPPT Using Variable-Step INC (VSS-INC)', description: 'Variable-step INC attenuates its compensation using the conductance error and the change between successive slopes, reducing oscillation near the MPP.', formulaLabelOne: 'Conductance error', formulaLabelTwo: 'Slope-compensated step', chartTitle: 'Variable-Step INC Power Trajectory', runLabel: 'Run VSS-INC' },
-  mpc: { title: 'Photovoltaic MPPT Using Model Predictive Control (MPC)', description: 'Finite-voltage-set MPC uses the Boost large-signal averaged model to predict candidate transients and selects the next voltage reference with a finite-horizon cost.', formulaLabelOne: 'State prediction', formulaLabelTwo: 'Finite-horizon cost', chartTitle: 'MPC Predicted-Power Trajectory', runLabel: 'Run MPC' },
+  vinc: { title: 'Photovoltaic MPPT Using Variable-Step INC (VSS-INC)', description: 'VSS-INC uses the incremental-conductance criterion for direction and multiplies the P–V slope by scaling factor N to set the bounded perturbation step.', formulaLabelOne: 'Incremental-conductance criterion', formulaLabelTwo: 'Slope-based variable step', chartTitle: 'Variable-Step INC Power Trajectory', runLabel: 'Run VSS-INC' },
   fuzzy: { title: 'Photovoltaic MPPT Using Fuzzy Logic Control (FLC)', description: 'FLC uses the P–U slope error and its change as inputs, then generates an adaptive voltage step through fuzzy inference.', formulaLabelOne: 'Fuzzy inputs', formulaLabelTwo: 'Defuzzification', chartTitle: 'Fuzzy-Control Power Trajectory', runLabel: 'Run FLC' },
   nn: { title: 'Photovoltaic MPPT Using a Backpropagation Neural Network (BPNN)', description: 'A single-hidden-layer multilayer perceptron is trained locally by error backpropagation on the three supplied P–U/I–U curves, using normalized current samples as inputs and each curve’s GMPP voltage as the target.', formulaLabelOne: 'Forward propagation', formulaLabelTwo: 'Backpropagation objective', chartTitle: 'BPNN Predicted Power', runLabel: 'Run BPNN' },
   svr: { title: 'Photovoltaic MPPT Using Support Vector Regression (SVR)', description: 'RBF-kernel SVR learns a nonlinear mapping from sampled curve features to GMPP voltage while limiting training error with an epsilon-insensitive loss.', formulaLabelOne: 'RBF kernel', formulaLabelTwo: 'Epsilon-insensitive loss', chartTitle: 'SVR Predicted Power', runLabel: 'Run SVR' },
@@ -952,10 +985,9 @@ const algorithmContentEn = {
   de: { title: 'Photovoltaic MPPT Using Differential Evolution (DE)', description: 'DE constructs candidate solutions from voltage differences among individuals and updates the population one member at a time using greedy selection.', formulaLabelOne: 'Differential mutation', formulaLabelTwo: 'Crossover and greedy selection', chartTitle: 'Differential-Evolution Power Trajectories', runLabel: 'Run DE' },
   dqn: { title: 'Photovoltaic MPPT Using a Deep Q-Network (DQN)', description: 'DQN approximates action values for discrete voltage actions and learns through epsilon-greedy exploration and replay.', formulaLabelOne: 'Temporal-difference target', formulaLabelTwo: 'Network loss', chartTitle: 'DQN Power Trajectory', runLabel: 'Run DQN' },
   sac: { title: 'Photovoltaic MPPT Using Soft Actor-Critic (SAC)', description: 'SAC learns a continuous voltage-control policy while maximizing both expected return and policy entropy.', formulaLabelOne: 'Soft value target', formulaLabelTwo: 'Continuous policy action', chartTitle: 'SAC Power Trajectory', runLabel: 'Run SAC' },
-  pso_po: { title: 'Photovoltaic MPPT Using Hybrid PSO-P&O', description: 'PSO first locates a promising region on the multimodal P–U curve, then small-step P&O performs local tracking.', formulaLabelOne: 'Global search', formulaLabelTwo: 'Local refinement', chartTitle: 'PSO-P&O Power Trajectory', runLabel: 'Run PSO-P&O' },
-  ga_po: { title: 'Photovoltaic MPPT Using Hybrid GA-P&O', description: 'GA performs global population search before its best individual seeds a local P&O tracker.', formulaLabelOne: 'Genetic global search', formulaLabelTwo: 'P&O local search', chartTitle: 'GA-P&O Power Trajectory', runLabel: 'Run GA-P&O' },
-  ga_fuzzy: { title: 'Photovoltaic MPPT Using Hybrid GA-Fuzzy Control', description: 'GA tunes the fuzzy controller scale and starting region, while online fuzzy inference produces voltage corrections.', formulaLabelOne: 'GA parameter optimization', formulaLabelTwo: 'Fuzzy-control output', chartTitle: 'GA-Fuzzy Power Trajectory', runLabel: 'Run GA-FLC' },
-  ga_ann: { title: 'Photovoltaic MPPT Using a GA-Optimized Backpropagation Neural Network (GA-BPNN)', description: 'In the cited paper, GA optimizes the neuron count, activation functions, and backpropagation training algorithm of a single-hidden-layer BPNN. This page provides a mechanism-level GA+BPNN teaching approximation, not a parameter-for-parameter reproduction of the paper’s offline network.', formulaLabelOne: 'GA optimization of BPNN', formulaLabelTwo: 'BPNN-guided search', chartTitle: 'GA-BPNN Hybrid Search Power Trajectory', runLabel: 'Run GA-BPNN', entityPrefix: 'Individual ' },
+  pso_po: { title: 'Photovoltaic MPPT Using Hybrid PSO-P&O', description: 'PSO performs a configurable N generations of global search before handing the current global-best operating point to small-step P&O.', formulaLabelOne: 'N-generation PSO search', formulaLabelTwo: 'Switch to P&O', chartTitle: 'PSO-P&O Power Trajectory', runLabel: 'Run PSO-P&O' },
+  ga_po: { title: 'Photovoltaic MPPT Using Hybrid GA-P&O', description: 'Following the cited paper, GA runs for three generations, then its best individual seeds P&O whose perturbation step decays by α each update.', formulaLabelOne: 'First three GA generations', formulaLabelTwo: 'Decaying-step P&O', chartTitle: 'GA-P&O Power Trajectory', runLabel: 'Run GA-P&O' },
+  ga_ann: { title: 'Photovoltaic MPPT Using a GA-Optimized Backpropagation Neural Network (GA-BPNN)', description: 'Uses GA to optimize the neuron count, activation functions, and backpropagation training algorithm of a single-hidden-layer BPNN.', formulaLabelOne: 'GA optimization of BPNN', formulaLabelTwo: 'BPNN-guided search', chartTitle: 'GA-BPNN Hybrid Search Power Trajectory', runLabel: 'Run GA-BPNN', entityPrefix: 'Individual ' },
 };
 
 const uiText = {
@@ -982,12 +1014,12 @@ const staticTextEnglish = {
   '参考开路电压 U': 'Reference Open-Circuit Voltage U', '初始温度 T': 'Initial Temperature T', '冷却系数 α': 'Cooling Factor α', '邻域步长': 'Neighborhood Step', '种群规模': 'Population Size', '交叉概率': 'Crossover Probability', '变异概率': 'Mutation Probability', '变异范围': 'Mutation Range',
   '开路电压比例 K': 'Open-Circuit Voltage Ratio K', '开路采样周期': 'Open-Circuit Sampling Period', '扫描电压步长 ΔU': 'Scan Voltage Step ΔU', '扫描保持周期': 'Scan Hold Period', '扰动幅值 A': 'Dither Amplitude A', '积分增益 K': 'Integral Gain K', '扰动周期 N': 'Dither Period N',
   '巢穴数': 'Nest Count', 'Lévy 飞行尺度 α': 'Lévy Flight Scale α', '巢穴发现概率 p': 'Nest Discovery Probability p', '电压调整步长 ΔU': 'Voltage Adjustment Step ΔU', '电导判据容差 ε': 'Conductance-Criterion Tolerance ε',
-  '最小电压步长': 'Minimum Voltage Step', '最大电压步长': 'Maximum Voltage Step', '斜率补偿系数 γ': 'Slope Compensation Factor γ', '候选电压步长 ΔU': 'Candidate Voltage Step ΔU', '预测时域 N': 'Prediction Horizon N', '控制增量惩罚 λ': 'Control-Increment Penalty λ',
+  '最小电压步长': 'Minimum Voltage Step', '最大电压步长': 'Maximum Voltage Step', '斜率缩放因子 N': 'Slope Scaling Factor N',
   '误差缩放因子 K': 'Error Scaling Factor K', '误差变化缩放 K': 'Error-Change Scaling K', '蜂群规模': 'Bee Colony Size', '邻域搜索系数 φ': 'Neighborhood Search Factor φ', '侏察蜂引导系数': 'Scout-Bee Guidance Factor',
   '人工鱼数': 'Artificial Fish Count', '感知距离 Visual': 'Visual Range', '移动步长 Step': 'Movement Step', '拥挤度因子 δ': 'Crowding Factor δ', '试探次数 Try-number': 'Try Number', '差分缩放因子 F': 'Differential Scale Factor F', '交叉概率 CR': 'Crossover Probability CR',
   '隐藏层神经元数': 'Hidden-Layer Neurons', '学习率 η': 'Learning Rate η', '训练轮数 Epochs': 'Training Epochs',
   '经验回放容量': 'Replay Buffer Capacity', 'Actor 学习率': 'Actor Learning Rate', '熵温度 α': 'Entropy Temperature α', '最大连续动作': 'Maximum Continuous Action',
-  '全局搜索占比': 'Global Search Share', 'P&O 局部步长': 'P&O Local Step', 'GA 种群规模': 'GA Population Size', '最大模糊电压步长': 'Maximum Fuzzy Voltage Step',
+  'PSO 切换代数 N': 'PSO Switch Generation N', 'P&O 局部步长': 'P&O Local Step', 'GA 种群规模': 'GA Population Size', '步长衰减因子 α': 'Step Decay Factor α',
   '停滞淘汰周期 limit': 'Stagnation Abandonment Limit', '误差缩放 K': 'Error Scaling K',
   'GA 变异概率': 'GA Mutation Probability', 'BPNN 引导权重': 'BPNN Guidance Weight',
   '惩罚系数 C': 'Penalty Parameter C', '不敏感区宽度 ε': 'Epsilon-Insensitive Width ε', 'RBF 核参数 γ': 'RBF Kernel Parameter γ',
@@ -1025,7 +1057,7 @@ function applyStaticTranslations() {
 }
 
 const englishUnits = {
-  particleCount: 'particles', iterations: 'iter.', poIterations: 'iter.', hcIterations: 'iter.', vpoIterations: 'iter.', jeincMaxJumps: 'jumps', jeincIterations: 'iter.', cvtIterations: 'iter.', focvSamplePeriod: 'iter.', focvIterations: 'iter.', scanHold: 'iter.', scanIterations: 'iter.', escPeriod: 'iter.', escIterations: 'iter.', saIterations: 'iter.', gaPopulation: 'individuals', gaIterations: 'iter.', csNests: 'nests', csIterations: 'iter.', incIterations: 'iter.', vincIterations: 'iter.', mpcHorizon: 'steps', mpcIterations: 'iter.', fuzzyIterations: 'iter.', abcPopulation: 'bees', abcIterations: 'iter.', abcAbandonLimit: 'cycles', afsaPopulation: 'fish', afsaTry: 'tries', afsaIterations: 'iter.', dePopulation: 'individuals', deIterations: 'iter.', nnHidden: 'neurons', nnEpochs: 'epochs', nnIterations: 'iter.', svrIterations: 'iter.', rfTrees: 'trees', rfDepth: 'levels', rfSampleRatio: '%', rfIterations: 'iter.', rlEpisodes: 'episodes', rlIterations: 'iter.', dqnReplay: 'samples', dqnIterations: 'iter.', sacIterations: 'iter.', psoPoPopulation: 'particles', psoPoIterations: 'iter.', gaPoPopulation: 'individuals', gaPoIterations: 'iter.', gaFuzzyPopulation: 'individuals', gaFuzzyIterations: 'iter.', gaAnnPopulation: 'individuals', gaAnnIterations: 'iter.',
+  particleCount: 'particles', iterations: 'iter.', poIterations: 'iter.', hcIterations: 'iter.', vpoIterations: 'iter.', jeincMaxJumps: 'jumps', jeincIterations: 'iter.', cvtIterations: 'iter.', focvSamplePeriod: 'iter.', focvIterations: 'iter.', scanHold: 'iter.', scanIterations: 'iter.', escPeriod: 'iter.', escIterations: 'iter.', saIterations: 'iter.', gaPopulation: 'individuals', gaIterations: 'iter.', csNests: 'nests', csIterations: 'iter.', incIterations: 'iter.', vincIterations: 'iter.', fuzzyIterations: 'iter.', abcPopulation: 'bees', abcIterations: 'iter.', abcAbandonLimit: 'cycles', afsaPopulation: 'fish', afsaTry: 'tries', afsaIterations: 'iter.', dePopulation: 'individuals', deIterations: 'iter.', nnHidden: 'neurons', nnEpochs: 'epochs', nnIterations: 'iter.', svrIterations: 'iter.', rfTrees: 'trees', rfDepth: 'levels', rfSampleRatio: '%', rfIterations: 'iter.', rlEpisodes: 'episodes', rlIterations: 'iter.', dqnReplay: 'samples', dqnIterations: 'iter.', sacIterations: 'iter.', psoPoPopulation: 'particles', psoPoSwitchGeneration: 'gen.', psoPoIterations: 'iter.', gaPoPopulation: 'individuals', gaPoIterations: 'iter.', gaAnnPopulation: 'individuals', gaAnnIterations: 'iter.',
 };
 
 const englishUnitFallbacks = { '个': 'agents', '次': 'iter.', '步': 'steps', '轮': 'epochs', '棵': 'trees', '层': 'levels', '回合': 'episodes', '条': 'samples' };
@@ -1268,15 +1300,10 @@ function params() {
     incIterations: Math.max(0, Math.round(controlValue(controls.incIterations))),
     vincMinStep: Math.max(0, controlValue(controls.vincMinStep)),
     vincMaxStep: Math.max(0, controlValue(controls.vincMaxStep)),
-    vincCompensation: Math.max(0, controlValue(controls.vincCompensation)),
+    vincScalingFactor: Math.max(0, controlValue(controls.vincScalingFactor)),
     vincTolerance: Math.max(0, controlValue(controls.vincTolerance)),
     vincVmaxPercent: Math.max(0, controlValue(controls.vincMaxVelocity)),
     vincIterations: Math.max(0, Math.round(controlValue(controls.vincIterations))),
-    mpcStep: Math.max(0, controlValue(controls.mpcStep)),
-    mpcHorizon: Math.max(1, Math.round(controlValue(controls.mpcHorizon))),
-    mpcPenalty: Math.max(0, controlValue(controls.mpcPenalty)),
-    mpcVmaxPercent: Math.max(0, controlValue(controls.mpcMaxVelocity)),
-    mpcIterations: Math.max(0, Math.round(controlValue(controls.mpcIterations))),
     fuzzyStep: Math.max(0, controlValue(controls.fuzzyStep)),
     fuzzyErrorGain: Math.max(0, controlValue(controls.fuzzyErrorGain)),
     fuzzyDeltaGain: Math.max(0, controlValue(controls.fuzzyDeltaGain)),
@@ -1322,9 +1349,8 @@ function params() {
     rlIterations: Math.max(0, Math.round(controlValue(controls.rlIterations))),
     dqnLearningRate: Math.max(0.0001, controlValue(controls.dqnLearningRate)), dqnDiscount: clamp(controlValue(controls.dqnDiscount), 0, 0.999), dqnExploration: clamp(controlValue(controls.dqnExploration), 0, 1), dqnReplay: Math.max(1, Math.round(controlValue(controls.dqnReplay))), dqnStep: Math.max(0.01, controlValue(controls.dqnStep)), dqnIterations: Math.max(1, Math.round(controlValue(controls.dqnIterations))),
     sacActorRate: Math.max(0.0001, controlValue(controls.sacActorRate)), sacDiscount: clamp(controlValue(controls.sacDiscount), 0, 0.999), sacEntropy: Math.max(0, controlValue(controls.sacEntropy)), sacMaxAction: Math.max(0.01, controlValue(controls.sacMaxAction)), sacIterations: Math.max(1, Math.round(controlValue(controls.sacIterations))),
-    psoPoPopulation: Math.max(2, Math.round(controlValue(controls.psoPoPopulation))), psoPoSwitch: clamp(controlValue(controls.psoPoSwitch), 10, 90), psoPoStep: Math.max(0.01, controlValue(controls.psoPoStep)), psoPoInitialDistribution: controls.psoPoInitialDistribution.value, psoPoIterations: Math.max(1, Math.round(controlValue(controls.psoPoIterations))),
-    gaPoPopulation: Math.max(2, Math.round(controlValue(controls.gaPoPopulation))), gaPoMutation: clamp(controlValue(controls.gaPoMutation), 0, 1), gaPoStep: Math.max(0.01, controlValue(controls.gaPoStep)), gaPoInitialDistribution: controls.gaPoInitialDistribution.value, gaPoIterations: Math.max(1, Math.round(controlValue(controls.gaPoIterations))),
-    gaFuzzyPopulation: Math.max(2, Math.round(controlValue(controls.gaFuzzyPopulation))), gaFuzzyStep: Math.max(0.01, controlValue(controls.gaFuzzyStep)), gaFuzzyGain: Math.max(0.01, controlValue(controls.gaFuzzyGain)), gaFuzzyInitialDistribution: controls.gaFuzzyInitialDistribution.value, gaFuzzyIterations: Math.max(1, Math.round(controlValue(controls.gaFuzzyIterations))),
+    psoPoPopulation: Math.max(2, Math.round(controlValue(controls.psoPoPopulation))), psoPoSwitchGeneration: Math.max(1, Math.round(controlValue(controls.psoPoSwitchGeneration))), psoPoStep: Math.max(0.01, controlValue(controls.psoPoStep)), psoPoInitialDistribution: controls.psoPoInitialDistribution.value, psoPoIterations: Math.max(1, Math.round(controlValue(controls.psoPoIterations))),
+    gaPoPopulation: Math.max(2, Math.round(controlValue(controls.gaPoPopulation))), gaPoMutation: clamp(controlValue(controls.gaPoMutation), 0, 1), gaPoStep: Math.max(0.01, controlValue(controls.gaPoStep)), gaPoAlpha: clamp(controlValue(controls.gaPoAlpha), 0.5, 1), gaPoInitialDistribution: controls.gaPoInitialDistribution.value, gaPoIterations: Math.max(1, Math.round(controlValue(controls.gaPoIterations))),
     gaAnnPopulation: Math.max(3, Math.round(controlValue(controls.gaAnnPopulation))), gaAnnMutation: clamp(controlValue(controls.gaAnnMutation), 0, 1), gaAnnGuide: clamp(controlValue(controls.gaAnnGuide), 0, 1), gaAnnInitialDistribution: controls.gaAnnInitialDistribution.value, gaAnnIterations: Math.max(1, Math.round(controlValue(controls.gaAnnIterations))),
     updateTimeMs: Math.max(0.001, controlValue(controls.updateTime)),
     inductanceMh: Math.max(0.001, controlValue(controls.inductance)),
@@ -2104,28 +2130,27 @@ function simulateSa(condition, settings) {
 
 function simulateHybridPopulation(condition, settings, kind) {
   const isPso = kind === 'pso_po';
-  const iterations = isPso ? settings.psoPoIterations : kind === 'ga_po' ? settings.gaPoIterations : settings.gaFuzzyIterations;
-  const count = isPso ? settings.psoPoPopulation : kind === 'ga_po' ? settings.gaPoPopulation : settings.gaFuzzyPopulation;
-  const switchAt = Math.round(iterations * (isPso ? settings.psoPoSwitch / 100 : 0.6));
-  const localStep = isPso ? settings.psoPoStep : kind === 'ga_po' ? settings.gaPoStep : settings.gaFuzzyStep;
+  const iterations = isPso ? settings.psoPoIterations : settings.gaPoIterations;
+  const count = isPso ? settings.psoPoPopulation : settings.gaPoPopulation;
+  const switchGenerations = isPso ? settings.psoPoSwitchGeneration : 3;
+  const switchAt = Math.min(iterations, switchGenerations * count);
   return simulatePopulationSearch(condition, settings, {
-    count, iterations, initialDistribution: isPso ? settings.psoPoInitialDistribution : kind === 'ga_po' ? settings.gaPoInitialDistribution : settings.gaFuzzyInitialDistribution,
-    updateOne: ({ index, positions, powers, globalBestPosition, iteration, maxVoltage }) => {
+    count, iterations, referenceScoring: true, initialDistribution: isPso ? settings.psoPoInitialDistribution : settings.gaPoInitialDistribution,
+    updateOne: ({ index, positions, globalBestPosition, iteration, maxVoltage }) => {
       const current = positions[index];
       if (iteration <= switchAt) {
         if (isPso) return current + 0.55 * (globalBestPosition - current) + gaussianRandom() * maxVoltage * 0.08;
         const parent = positions[Math.floor(Math.random() * positions.length)];
         let child = 0.55 * globalBestPosition + 0.45 * parent;
-        const mutation = kind === 'ga_po' ? settings.gaPoMutation : 0.18;
-        if (Math.random() < mutation) child += gaussianRandom() * maxVoltage * 0.08;
+        if (Math.random() < settings.gaPoMutation) child += gaussianRandom() * maxVoltage * 0.08;
         return child;
       }
+      const localIteration = iteration - switchAt - 1;
+      const localStep = isPso
+        ? settings.psoPoStep
+        : settings.gaPoStep * settings.gaPoAlpha ** localIteration;
       const probeUp = clamp(globalBestPosition + localStep, 0, maxVoltage);
       const probeDown = clamp(globalBestPosition - localStep, 0, maxVoltage);
-      if (kind === 'ga_fuzzy') {
-        const slope = (fitness(condition, probeUp) - fitness(condition, probeDown)) / Math.max(2 * localStep, 1e-9);
-        return globalBestPosition + Math.tanh(settings.gaFuzzyGain * slope / Math.max(1, Math.max(...powers))) * localStep;
-      }
       return fitness(condition, probeUp) >= fitness(condition, probeDown) ? probeUp : probeDown;
     },
   });
@@ -2244,7 +2269,6 @@ function simulateVariableInc(condition, settings) {
   const maxMove = (maxVoltage - minVoltage) * settings.vincVmaxPercent / 100;
   const minimumStep = Math.min(settings.vincMinStep, maxMove);
   const maximumStep = Math.min(Math.max(minimumStep, settings.vincMaxStep), maxMove);
-  const errorScale = Math.max(1e-6, condition.current[0] / Math.max(maxVoltage, 1));
   const plant = createBoostPlant();
   const history = [];
   let position = 0;
@@ -2254,7 +2278,6 @@ function simulateVariableInc(condition, settings) {
   let duty = boostModel.dutyMax;
   let direction = 1;
   let adaptiveStep = maximumStep;
-  let previousError = errorScale;
   let bestPosition = 0;
   let bestPower = 0;
   const snapshot = (iteration, segments = []) => ({
@@ -2270,6 +2293,7 @@ function simulateVariableInc(condition, settings) {
   for (let iteration = 1; iteration <= settings.vincIterations; iteration += 1) {
     const previousCurrent = current;
     const previousVoltage = measuredVoltage;
+    const previousPower = power;
     position = clamp(position + direction * adaptiveStep, minVoltage, maxVoltage);
     const measurement = runBoostInterval(condition, position, settings, plant);
     current = measurement.current;
@@ -2284,79 +2308,11 @@ function simulateVariableInc(condition, settings) {
     if (conductanceError > settings.vincTolerance) direction = 1;
     else if (conductanceError < -settings.vincTolerance) direction = -1;
     else direction = 0;
-    const normalizedError = clamp(Math.abs(conductanceError) / errorScale, 0, 1);
-    const slopeChange = clamp(Math.abs(conductanceError - previousError) / errorScale, 0, 1);
-    const compensation = clamp((1 - Math.min(1, settings.vincCompensation)) * normalizedError
-      + Math.min(1, settings.vincCompensation) * normalizedError * slopeChange, 0, 1);
-    adaptiveStep = minimumStep + (maximumStep - minimumStep) * compensation;
+    const powerVoltageSlope = Math.abs(deltaVoltage) < 1e-9
+      ? 0
+      : Math.abs((power - previousPower) / deltaVoltage);
+    adaptiveStep = clamp(settings.vincScalingFactor * powerVoltageSlope, minimumStep, maximumStep);
     if (direction === 0) adaptiveStep = 0;
-    previousError = conductanceError;
-    if (power > bestPower) { bestPower = power; bestPosition = position; }
-    history.push(snapshot(iteration, [measurement]));
-  }
-  return history;
-}
-
-function simulateMpc(condition, settings) {
-  const minVoltage = condition.range.minVoltage;
-  const maxVoltage = condition.range.rawMaxVoltage || condition.range.maxVoltage;
-  const maxMove = (maxVoltage - minVoltage) * settings.mpcVmaxPercent / 100;
-  const candidateStep = Math.min(settings.mpcStep, maxMove);
-  const plant = createBoostPlant();
-  const history = [];
-  let position = 0;
-  let power = 0;
-  let current = 0;
-  let measuredVoltage = 0;
-  let duty = boostModel.dutyMax;
-  let predictedPower = 0;
-  let bestPosition = 0;
-  let bestPower = 0;
-  const snapshot = (iteration, segments = []) => ({
-    iteration, predictedPower, positions: [position], referencePowers: [fitness(condition, position)], powers: [power],
-    currents: [current], actualVoltages: [measuredVoltage], duties: [duty],
-    bestPositions: [bestPosition], bestPowers: [bestPower],
-    globalBestPosition: bestPosition, globalBestPower: bestPower,
-    actualVoltage: plant.pvVoltage,
-    actualPower: plant.pvVoltage * Math.max(0, currentAt(condition, plant.pvVoltage)),
-    boostSegments: segments,
-  });
-  history.push(snapshot(0));
-  for (let iteration = 1; iteration <= settings.mpcIterations; iteration += 1) {
-    const candidates = [...new Set([
-      clamp(position - candidateStep, minVoltage, maxVoltage),
-      clamp(position, minVoltage, maxVoltage),
-      clamp(position + candidateStep, minVoltage, maxVoltage),
-    ])];
-    let selectedPosition = position;
-    let selectedPrediction = -Infinity;
-    let lowestCost = Infinity;
-    candidates.forEach((candidate) => {
-      const forecastPlant = { ...plant };
-      let accumulatedPower = 0;
-      for (let horizon = 0; horizon < settings.mpcHorizon; horizon += 1) {
-        const forecast = runBoostInterval(condition, candidate, settings, forecastPlant);
-        accumulatedPower += forecast.power;
-      }
-      const averagePower = accumulatedPower / settings.mpcHorizon;
-      const terminalPower = fitness(condition, candidate);
-      const objectivePower = 0.6 * averagePower + 0.4 * terminalPower;
-      const normalizedMove = (candidate - position) / Math.max(maxMove, 1e-9);
-      const cost = -objectivePower / Math.max(condition.gmpp.power, 1e-9)
-        + settings.mpcPenalty * normalizedMove ** 2;
-      if (cost < lowestCost) {
-        lowestCost = cost;
-        selectedPosition = candidate;
-        selectedPrediction = averagePower;
-      }
-    });
-    position = selectedPosition;
-    predictedPower = selectedPrediction;
-    const measurement = runBoostInterval(condition, position, settings, plant);
-    power = measurement.power;
-    current = measurement.current;
-    measuredVoltage = measurement.voltage;
-    duty = measurement.duty;
     if (power > bestPower) { bestPower = power; bestPosition = position; }
     history.push(snapshot(iteration, [measurement]));
   }
@@ -2863,7 +2819,6 @@ function simulate() {
     de: simulateDe,
     inc: simulateInc,
     vinc: simulateVariableInc,
-    mpc: simulateMpc,
     fuzzy: simulateFuzzy,
     nn: simulateNeuralNetwork,
     svr: simulateSvr,
@@ -2873,7 +2828,6 @@ function simulate() {
     sac: (c, s) => simulateLearningController(c, s, 'sac'),
     pso_po: (c, s) => simulateHybridPopulation(c, s, 'pso_po'),
     ga_po: (c, s) => simulateHybridPopulation(c, s, 'ga_po'),
-    ga_fuzzy: (c, s) => simulateHybridPopulation(c, s, 'ga_fuzzy'),
     ga_ann: simulateGaAnnHybrid,
   };
   state.history = simulators[state.algorithm](condition, settings);
@@ -3553,10 +3507,6 @@ function setupRangeNumberInputs() {
     vincMaxStep: 'V',
     vincMaxVelocity: '%',
     vincIterations: '次',
-    mpcStep: 'V',
-    mpcHorizon: '步',
-    mpcMaxVelocity: '%',
-    mpcIterations: '次',
     fuzzyStep: 'V',
     fuzzyIterations: '次',
     abcPopulation: '个',
@@ -3583,8 +3533,8 @@ function setupRangeNumberInputs() {
     rlStep: 'V',
     rlIterations: '次',
     dqnReplay: '条', dqnStep: 'V', dqnIterations: '次', sacMaxAction: 'V', sacIterations: '次',
-    psoPoPopulation: '个', psoPoSwitch: '%', psoPoStep: 'V', psoPoIterations: '次', gaPoPopulation: '个', gaPoStep: 'V', gaPoIterations: '次',
-    gaFuzzyPopulation: '个', gaFuzzyStep: 'V', gaFuzzyIterations: '次', gaAnnPopulation: '个', gaAnnIterations: '次', abcAbandonLimit: '次',
+    psoPoPopulation: '个', psoPoSwitchGeneration: '代', psoPoStep: 'V', psoPoIterations: '次', gaPoPopulation: '个', gaPoStep: 'V', gaPoIterations: '次',
+    gaAnnPopulation: '个', gaAnnIterations: '次', abcAbandonLimit: '次',
     updateTime: 'ms',
     inductance: 'mH',
     capacitance: 'μF',
@@ -3680,15 +3630,10 @@ function bindControls() {
     incIterations: (v) => v,
     vincMinStep: (v) => `${Number(v).toFixed(2)} V`,
     vincMaxStep: (v) => `${Number(v).toFixed(2)} V`,
-    vincCompensation: (v) => Number(v).toFixed(2),
+    vincScalingFactor: (v) => Number(v).toFixed(2),
     vincTolerance: (v) => Number(v).toFixed(3),
     vincMaxVelocity: (v) => `${v}%`,
     vincIterations: (v) => v,
-    mpcStep: (v) => `${Number(v).toFixed(2)} V`,
-    mpcHorizon: (v) => v,
-    mpcPenalty: (v) => Number(v).toFixed(2),
-    mpcMaxVelocity: (v) => `${v}%`,
-    mpcIterations: (v) => v,
     fuzzyStep: (v) => `${Number(v).toFixed(2)} V`,
     fuzzyErrorGain: (v) => Number(v).toFixed(2),
     fuzzyDeltaGain: (v) => Number(v).toFixed(2),
@@ -3730,9 +3675,9 @@ function bindControls() {
     rlIterations: (v) => v,
     dqnLearningRate: (v) => Number(v).toFixed(3), dqnDiscount: (v) => Number(v).toFixed(2), dqnExploration: (v) => Number(v).toFixed(2), dqnReplay: (v) => v, dqnStep: (v) => `${Number(v).toFixed(2)} V`, dqnIterations: (v) => v,
     sacActorRate: (v) => Number(v).toFixed(3), sacDiscount: (v) => Number(v).toFixed(2), sacEntropy: (v) => Number(v).toFixed(2), sacMaxAction: (v) => `${Number(v).toFixed(2)} V`, sacIterations: (v) => v,
-    psoPoPopulation: (v) => v, psoPoSwitch: (v) => `${v}%`, psoPoStep: (v) => `${Number(v).toFixed(2)} V`, psoPoIterations: (v) => v,
-    gaPoPopulation: (v) => v, gaPoMutation: (v) => Number(v).toFixed(2), gaPoStep: (v) => `${Number(v).toFixed(2)} V`, gaPoIterations: (v) => v,
-    gaFuzzyPopulation: (v) => v, gaFuzzyStep: (v) => `${Number(v).toFixed(2)} V`, gaFuzzyGain: (v) => Number(v).toFixed(2), gaFuzzyIterations: (v) => v, abcAbandonLimit: (v) => v,
+    psoPoPopulation: (v) => v, psoPoSwitchGeneration: (v) => v, psoPoStep: (v) => `${Number(v).toFixed(2)} V`, psoPoIterations: (v) => v,
+    gaPoPopulation: (v) => v, gaPoMutation: (v) => Number(v).toFixed(2), gaPoStep: (v) => `${Number(v).toFixed(2)} V`, gaPoAlpha: (v) => Number(v).toFixed(2), gaPoIterations: (v) => v,
+    abcAbandonLimit: (v) => v,
     gaAnnPopulation: (v) => v, gaAnnMutation: (v) => Number(v).toFixed(2), gaAnnGuide: (v) => Number(v).toFixed(2), gaAnnIterations: (v) => v,
     updateTime: (v) => `${Number(v).toFixed(2)} ms`,
     inductance: (v) => `${Number(v).toFixed(2)} mH`,
@@ -3819,7 +3764,6 @@ function bindControls() {
     controls.deInitialDistribution,
     controls.psoPoInitialDistribution,
     controls.gaPoInitialDistribution,
-    controls.gaFuzzyInitialDistribution,
     controls.gaAnnInitialDistribution,
   ].forEach((select) => select.addEventListener('change', invalidateSimulation));
   $('#runButton').addEventListener('click', toggleRunButton);
@@ -3883,4 +3827,3 @@ async function initialize() {
 }
 
 initialize();
-

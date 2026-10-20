@@ -146,7 +146,8 @@ input[type="range"].thumb-hidden::-webkit-slider-thumb { opacity: 0; }
 input[type="range"].thumb-hidden::-moz-range-thumb { opacity: 0; }
 .distribution-field { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 0; border-top: 1px solid var(--line); font-size: 13px; font-weight: 650; }
 .distribution-field select { min-width: 112px; padding: 7px 9px; border: 1px solid var(--line); background: white; border-radius: 3px; color: var(--ink); cursor: pointer; }
-.parameter-actions { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; width: 100%; margin-top: 6px; }
+.parameter-actions { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; width: 100%; margin: 6px 0 8px; }
+.control-panel.machine-learning-active .parameter-actions { margin-bottom: 0; }
 .parameter-help-button, .parameter-reset-button { width: 100%; margin: 0; padding: 8px 8px; border: 1px solid rgba(14,107,86,.35); border-radius: 3px; background: rgba(14,107,86,.045); color: var(--green-dark); font-size: 13px; font-weight: 700; cursor: pointer; }
 .parameter-help-button { border-color: rgba(102,87,217,.38); background: rgba(102,87,217,.06); color: #4539a3; }
 .parameter-help-button span:first-child, .parameter-reset-button span:first-child { display: inline-grid; place-items: center; width: 16px; height: 16px; margin-right: 4px; font-size: 13px; }
@@ -310,7 +311,10 @@ body.parameter-help-open { overflow: hidden; }
   .section-heading h2 { display: inline; font-size: 18px; letter-spacing: 0; }
   .lab-layout { flex: 1; min-height: 0; grid-template-columns: 340px minmax(0, 1fr); gap: 8px; align-items: stretch; }
 
-  .control-panel { position: static; min-height: 0; height: 100%; padding: 6px 8px; overflow: hidden; display: flex; flex-direction: column; }
+  .control-panel { position: static; min-height: 0; height: 100%; padding: 6px 8px; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: rgba(14,107,86,.72) rgba(217,221,210,.38); display: flex; flex-direction: column; }
+  .control-panel::-webkit-scrollbar { width: 8px; }
+  .control-panel::-webkit-scrollbar-track { background: rgba(217,221,210,.38); }
+  .control-panel::-webkit-scrollbar-thumb { border: 2px solid transparent; border-radius: 999px; background: rgba(14,107,86,.72); background-clip: padding-box; }
   .panel-head { flex: 0 0 auto; min-height: 29px; gap: 8px; padding: 2px 0 5px; }
   .panel-head > span { width: 26px; height: 26px; font-size: 10px; }
   .panel-head h3 { font-size: 15px; }
@@ -428,4 +432,3 @@ body.parameter-help-open { overflow: hidden; }
   .parameter-help-header h2 { font-size: 21px; }
   .parameter-help-list { grid-template-columns: 1fr; }
 }
-
