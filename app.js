@@ -1030,7 +1030,7 @@ const staticTextEnglish = {
   '当前工况': 'Selected Condition', '其他工况': 'Other Conditions', '粒子': 'Particles', '参考点理论功率': 'Theoretical Reference Power', '实际光伏功率': 'Actual PV Power',
   '该网站运行基于 Boost 大信号模型和光伏 P–U 特性曲线': 'This website runs on a Boost large-signal model and PV P–U characteristic curves',
   '说明：所选工况的光伏运行数据同时作为训练集和测试集，并非基于大量独立数据训练，结果仅用于演示，不具有代表性。': 'Note: PV operating data from the selected condition are used as both the training and test set. The method is not trained on a large independent dataset, so the result is illustrative and not representative.',
-  '说明：所选工况的光伏运行数据同时作为训练集和测试集；DQN 与 SAC 使用轻量化在线近似展示决策机制。结果仅用于教学演示，不等同于论文中的离线训练模型或实验性能。': 'Note: PV operating data from the selected condition are used as both the training and test set; DQN and SAC use lightweight online approximations to demonstrate their decision-making mechanisms. Results are for educational demonstration only and do not represent the papers’ offline training models or experimental performance.',
+  '说明：所选工况的光伏运行数据同时作为训练集和测试集。结果仅用于教学演示，不等同于论文中的离线训练模型或实验性能。': 'Note: PV operating data from the selected condition are used as both the training and test set. Results are for educational demonstration only and do not represent the papers’ offline training models or experimental performance.',
 };
 
 const staticTextNodes = [];
